@@ -1,0 +1,28 @@
+<set xmlns:android="http://schemas.android.com/apk/res/android" 
+	 android:shareInterpolator="false">
+       
+	<translate 
+	    android:interpolator="@android:anim/accelerate_decelerate_interpolator"
+	    android:fromYDelta="200"
+	    android:toYDelta="-10"
+	    android:duration="600" 
+	    android:fillAfter="false"/>
+	   
+	    
+	<translate 
+	     android:interpolator="@android:anim/accelerate_decelerate_interpolator"
+	     android:fromYDelta="-10"
+	     android:toYDelta="10"
+	     android:duration="150" 
+	     android:fillAfter="false"
+	     android:startOffset="600"/>
+	     
+	<translate 
+	     android:interpolator="@android:anim/accelerate_decelerate_interpolator"
+	     android:fromYDelta="10"
+	     android:toYDelta="0"
+	     android:duration="200" 
+	     android:fillAfter="false"
+	     android:startOffset="750"/>
+</set>
+       
