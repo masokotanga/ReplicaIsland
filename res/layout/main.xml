@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    >
+    
+    <view xmlns:android="http://schemas.android.com/apk/res/android" 
+		class = "com.replica.replicaisland.GLSurfaceView"
+		android:id="@+id/glsurfaceview"
+	    android:layout_width="fill_parent" 
+	    android:layout_height="fill_parent"
+	/>
+   <ImageView 
+          android:id="@+id/pausedMessage"
+          android:src="@drawable/ui_paused"
+          android:layout_height="wrap_content" 
+          android:layout_width="wrap_content" 
+          android:layout_gravity="center"
+          android:visibility="gone"/>
+          
+   <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+		android:id="@+id/pleaseWaitMessage"
+		android:orientation="horizontal"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:padding="5dp"
+		android:background="@drawable/custom_toast_border" 
+		android:layout_gravity="bottom|left"
+		android:visibility="gone">
+		<TextView android:id="@+id/text"
+			android:layout_width="wrap_content"
+			android:layout_height="fill_parent"
+			android:textColor="#65ff99"
+			android:textSize="20sp"
+			android:textStyle="bold"
+			android:gravity="center"
+			android:text="@string/please_wait"
+		/>
+		</LinearLayout>
+    
+</FrameLayout>
