@@ -10,7 +10,7 @@ public class EventReporter implements Runnable {
 	public final static int EVENT_BEAT_LEVEL = 1;
 	public final static int EVENT_BEAT_GAME = 2;
 	
-	public final static String REPORT_SERVER = "http://www.replicaisland.net/reporting/event.php";
+	public final static String REPORT_SERVER = null; // insert your server here.
 	
 	private class Event {
 		public String eventType;
@@ -81,40 +81,42 @@ public class EventReporter implements Runnable {
         URL serverAddress = null;
         HttpURLConnection connection = null;
 
-        try {
-            serverAddress = new URL(REPORT_SERVER + "?"
-            		+ "event=" + event.eventType
-            		+ "&x=" + event.x
-            		+ "&y=" + event.y
-            		+ "&time=" + event.time
-            		+ "&level=" + URLEncoder.encode(event.level, "UTF-8")
-            		+ "&version=" + event.version
-            		+ "&session=" + event.session);
-            //set up out communications stuff
-            connection = null;
-          
-            //Set up the initial connection
-            connection = (HttpURLConnection)serverAddress.openConnection();
-               
-            connection.setRequestMethod("GET");
-            connection.setDoOutput(true);
-            connection.setReadTimeout(0);
-            
-            connection.connect();
-            final int response = connection.getResponseCode();
-            DebugLog.d("Report Event", event.eventType + "  " + response + ":" + connection.getURL().toString());
-
-         
-                      
-        } catch (Exception e) {
-           // This code can silently fail.
-        	//e.printStackTrace();
-        }
-        finally
-        {
-            //close the connection
-            connection.disconnect();
-            connection = null;
+        if (REPORT_SERVER != null) {
+	        try {
+	            serverAddress = new URL(REPORT_SERVER + "?"
+	            		+ "event=" + event.eventType
+	            		+ "&x=" + event.x
+	            		+ "&y=" + event.y
+	            		+ "&time=" + event.time
+	            		+ "&level=" + URLEncoder.encode(event.level, "UTF-8")
+	            		+ "&version=" + event.version
+	            		+ "&session=" + event.session);
+	            //set up out communications stuff
+	            connection = null;
+	          
+	            //Set up the initial connection
+	            connection = (HttpURLConnection)serverAddress.openConnection();
+	               
+	            connection.setRequestMethod("GET");
+	            connection.setDoOutput(true);
+	            connection.setReadTimeout(0);
+	            
+	            connection.connect();
+	            final int response = connection.getResponseCode();
+	            DebugLog.d("Report Event", event.eventType + "  " + response + ":" + connection.getURL().toString());
+	
+	         
+	                      
+	        } catch (Exception e) {
+	           // This code can silently fail.
+	        	//e.printStackTrace();
+	        }
+	        finally
+	        {
+	            //close the connection
+	            connection.disconnect();
+	            connection = null;
+	        }
         }
 
     }
