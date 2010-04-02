@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008 The Android Open Source Project
+ * Copyright (C) 2010 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,6 +39,13 @@ public class SetPreferencesActivity extends PreferenceActivity implements
         if (eraseGameButton != null) {
         	YesNoDialogPreference yesNo = (YesNoDialogPreference)eraseGameButton;
         	yesNo.setListener(this);
+        }
+        
+        Preference configureKeyboardPref = getPreferenceManager().findPreference("keyconfig");
+        if (configureKeyboardPref != null) {
+        	KeyboardConfigDialogPreference config = (KeyboardConfigDialogPreference)configureKeyboardPref;
+        	config.setPrefs(getSharedPreferences(AndouKun.PREFERENCE_NAME, MODE_PRIVATE));
+        	config.setContext(this);
         }
     }
 

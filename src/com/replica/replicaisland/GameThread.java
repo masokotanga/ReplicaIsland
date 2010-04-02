@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008 The Android Open Source Project
+ * Copyright (C) 2010 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,7 +51,15 @@ public class GameThread implements Runnable {
     private boolean mKeyUpUp;
     private boolean mKeyTouchUp;
     private boolean mKeyClickUp;
+    
+    private boolean mClickActive;
 
+    // Configurable key codes
+	private int mLeftKey = KeyEvent.KEYCODE_DPAD_LEFT;
+	private int mRightKey = KeyEvent.KEYCODE_DPAD_RIGHT;
+	private int mJumpKey = KeyEvent.KEYCODE_SPACE;
+	private int mAttackKey = KeyEvent.KEYCODE_SHIFT_LEFT;
+	
     private ObjectManager mGameRoot;
     private GameRenderer mRenderer;
     private Object mInputLock;
@@ -60,6 +68,7 @@ public class GameThread implements Runnable {
     private boolean mPaused = false;
     private int mProfileFrames;
     private long mProfileTime;
+    
     private static final float PROFILE_REPORT_DELAY = 3.0f;
     
     public GameThread(GameRenderer renderer) {
@@ -287,34 +296,19 @@ public class GameThread implements Runnable {
     public boolean keydownEvent(int keycode) {
         boolean ateKey = true;
         synchronized (mInputLock) {
-            switch (keycode) {
-                case KeyEvent.KEYCODE_DPAD_LEFT:
-                    mKeyLeft = true;
-                    break;
-                case KeyEvent.KEYCODE_DPAD_RIGHT:
-                    mKeyRight = true;
-                    break;
-                case KeyEvent.KEYCODE_DPAD_UP:
-                    mKeyUp = true;
-                    break;
-                case KeyEvent.KEYCODE_DPAD_DOWN:
-                    mKeyDown = true;
-                    break;
-                case KeyEvent.KEYCODE_DPAD_CENTER:
-                    mKeyClick = true;
-                    break;
-                case KeyEvent.KEYCODE_SPACE:
-                    mKeyTouch = true;
-                    break;
-                case KeyEvent.KEYCODE_B:
-                	mKeyClick = true;
-                    break;
-                case KeyEvent.KEYCODE_A:
-                	mKeyTouch = true;
-                    break;
-                default:
-                    ateKey = false;
-            }
+        	if (keycode == mLeftKey) {
+                mKeyLeft = true;
+            } else if (keycode == mRightKey) {
+                mKeyRight = true;
+            } else if (keycode == mJumpKey) {
+                mKeyTouch = true;
+            } else if (keycode == mAttackKey) {
+            	mKeyClick = true;
+            } else if (mClickActive && keycode == KeyEvent.KEYCODE_DPAD_CENTER) {
+                mKeyClick = true;
+            } else {
+                ateKey = false;
+            }  
             
             mKeyInputReceived = ateKey;
         }
@@ -324,37 +318,36 @@ public class GameThread implements Runnable {
     public boolean keyupEvent(int keycode) {
         boolean ateKey = true;
         synchronized (mInputLock) {
-            switch (keycode) {
-                case KeyEvent.KEYCODE_DPAD_LEFT:
-                    mKeyLeftUp = true;
-                    break;
-                case KeyEvent.KEYCODE_DPAD_RIGHT:
-                    mKeyRightUp = true;
-                    break;
-                case KeyEvent.KEYCODE_DPAD_UP:
-                    mKeyUpUp = true;
-                    break;
-                case KeyEvent.KEYCODE_DPAD_DOWN:
-                    mKeyDownUp = true;
-                    break;
-                case KeyEvent.KEYCODE_DPAD_CENTER:
-                    mKeyClickUp = true;
-                    break;
-                case KeyEvent.KEYCODE_SPACE:
-                    mKeyTouchUp = true;
-                    break;
-                case KeyEvent.KEYCODE_B:
-                	mKeyClickUp = true;
-                    break;
-                case KeyEvent.KEYCODE_A:
-                    mKeyTouchUp = true;
-                    break;
-                default:
-                    ateKey = false;
+            if (keycode == mLeftKey) {
+                mKeyLeftUp = true;
+            } else if (keycode == mRightKey) {
+                mKeyRightUp = true;
+            } else if (keycode == mJumpKey) {
+                mKeyTouchUp = true;
+            } else if (keycode == mAttackKey) {
+            	mKeyClickUp = true;
+            } else if (mClickActive && keycode == KeyEvent.KEYCODE_DPAD_CENTER) {
+                mKeyClickUp = true;
+            } else {
+                ateKey = false;
             }            
             mKeyInputReceived = ateKey;
         }
         return ateKey;
     }
+
+	public void setKeyConfig(int leftKey, int rightKey, int jumpKey,
+			int attackKey) {
+		synchronized (mInputLock) {
+			mLeftKey = leftKey;
+			mRightKey = rightKey;
+			mJumpKey = jumpKey;
+			mAttackKey = attackKey;
+		}
+	}
+
+	public void setClickActive(boolean clickAttack) {
+		mClickActive = clickAttack;
+	}
     
 }

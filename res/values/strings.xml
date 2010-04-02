@@ -32,6 +32,21 @@
 <string name="preference_enable_tilt_controls">Tilt Controls</string>
 <string name="preference_enable_tilt_controls_summary">EXPERIMENTAL!  Tilt the phone left and right to drive the Android around.  Good for devices with no trackball or d-pad.</string>
 
+<string name="preference_tilt_sensitivity">Tilt Sensitivity</string>
+<string name="preference_tilt_sensitivity_summary">Adjusts the sensitivity of the tilt controls.</string>
+<string name="preference_tilt_min">Slow</string>
+<string name="preference_tilt_max">Fast</string>
+
+<string name="preference_key_config">Configure Keyboard</string>
+<string name="preference_key_config_summary">Customize keys for phones with hard keyboards.</string>
+<string name="preference_key_config_dialog_title">Configure Keyboard</string>
+<string name="preference_key_config_dialog_ok">Save</string>
+<string name="preference_key_config_dialog_cancel">Cancel</string>
+<string name="preference_key_config_left">Left</string>
+<string name="preference_key_config_right">Right</string>
+<string name="preference_key_config_jump">Jump</string>
+<string name="preference_key_config_attack">Attack</string>
+
 
 <string name="preference_enable_statistics">Report Play Statistics</string>
 <string name="preference_enable_statistics_summary">Sends anonymous play statistics to a server to help us make this game more fun.</string>
@@ -42,6 +57,8 @@
 <string name="preference_visit_site">Go to the Replica Island web site</string>
 <string name="preference_thanks_title">Special Thanks</string>
 <string name="preference_thanks_summary">Special Thanks to Adrian Havill, Casey Richardson, Jason Chen, Tim Mansfield, and the Android Team for their support of this project.</string>
+<string name="preference_licence_title">License</string>
+<string name="preference_licence_summary">Portions of this game are modifications based on work created and shared by Google and used according to terms described in the Creative Commons 3.0 Attribution License.</string>
 
 
 <string name="saved_game_erased_notification">Saved Game Erased</string>
@@ -57,9 +74,10 @@
 <string name="whats_new_dialog_ok">Rock on!</string>
 <string name="whats_new_dialog_message">Thanks for downloading Replica Island.\n\n
 <b>New in this version:</b>\n
-\t• Control customization (Droid users, try turning Click To Attack off in the options screen)\n
-\t• Experimental Tilt controls (for devices without a trackball or dpad)\n
-\t• Various compatibility fixes (fixed drawing problems on the Cliq).
+\t• Crash fixes and general stability improvements. \n
+\t• Keyboard configuration for devices with hard keyboards. \n
+\t• Tilt control sensitivity controls. \n
+\t• Fixed missing graphics on confusing Memory #034 puzzle. \n
 \n
 \n
 This is an open source project.  If you are interested in how it works, or would like to use it to make your
@@ -68,6 +86,8 @@ own games, check out the source at our web site, replicaisland.net.
 \n
 Also note that this game sends anonymous play statistics back to a server.  If you’d rather not
 allow that, you can turn it off in the options screen.</string>
+
+<string name="whats_new_ticker">New in this version: Crash fixes, fixes to the confusing Memory #034 puzzle, configurable controls, configurable tilt sensitivity.</string>
 
 <!-- Toast Messages -->
 <string name="memory_playback_start">MEMORY PLAYBACK START</string>

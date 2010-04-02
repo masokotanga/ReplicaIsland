@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008 The Android Open Source Project
+ * Copyright (C) 2010 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -485,9 +485,12 @@ public class Game extends AllocationGuard {
 		BaseObject.sSystemRegistry.soundSystem.setSoundEnabled(soundEnabled);
 	}
 	
-	public void setControlOptions(boolean clickAttack, boolean tiltControls) {
-		BaseObject.sSystemRegistry.inputSystem.setClickActive(clickAttack);
+	public void setControlOptions(boolean clickAttack, boolean tiltControls, int tiltSensitivity) {
+		if (mGameThread != null) {
+			mGameThread.setClickActive(clickAttack);
+		}
 		BaseObject.sSystemRegistry.inputSystem.setUseOrientationForRoll(tiltControls);
+		BaseObject.sSystemRegistry.inputSystem.setOrientationSensitivityModifier((tiltSensitivity / 100.0f));
 	}
 	
 	public float getGameTime() {
@@ -500,6 +503,14 @@ public class Game extends AllocationGuard {
 
 	public boolean isPaused() {
 		return (mRunning && mGameThread != null && mGameThread.getPaused());
+	}
+
+	public void setKeyConfig(int leftKey, int rightKey, int jumpKey,
+			int attackKey) {
+		if (mGameThread != null) {
+			mGameThread.setKeyConfig(leftKey, rightKey, jumpKey, attackKey);
+		}
+		
 	}
 
 }

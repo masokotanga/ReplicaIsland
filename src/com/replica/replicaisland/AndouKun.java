@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008 The Android Open Source Project
+ * Copyright (C) 2010 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -65,6 +65,12 @@ public class AndouKun extends Activity implements SensorEventListener {
     public static final String PREFERENCE_STATS_ENABLED = "enableStats";
     public static final String PREFERENCE_CLICK_ATTACK = "enableClickAttack";
     public static final String PREFERENCE_TILT_CONTROLS = "enableTiltControls";
+    public static final String PREFERENCE_TILT_SENSITIVITY = "tiltSensitivity";
+    
+    public static final String PREFERENCE_LEFT_KEY = "keyLeft";
+    public static final String PREFERENCE_RIGHT_KEY = "keyRight";
+    public static final String PREFERENCE_ATTACK_KEY = "keyAttack";
+    public static final String PREFERENCE_JUMP_KEY = "keyJump";
     
     public static final String PREFERENCE_NAME = "ReplicaIslandPrefs";
     
@@ -72,7 +78,7 @@ public class AndouKun extends Activity implements SensorEventListener {
     
     // If the version is a negative number, debug features (logging and a debug menu)
     // are enabled.
-    public static final int VERSION = 9;
+    public static final int VERSION = 10;
 
     private GLSurfaceView mGLSurfaceView;
     private Game mGame;
@@ -248,9 +254,16 @@ public class AndouKun extends Activity implements SensorEventListener {
         final boolean soundEnabled = prefs.getBoolean(PREFERENCE_SOUND_ENABLED, true);
         final boolean clickAttack = prefs.getBoolean(PREFERENCE_CLICK_ATTACK, true);
         final boolean tiltControls = prefs.getBoolean(PREFERENCE_TILT_CONTROLS, false);
+        final int tiltSensitivity = prefs.getInt(PREFERENCE_TILT_SENSITIVITY, 50);
+        
+        final int leftKey = prefs.getInt(PREFERENCE_LEFT_KEY, KeyEvent.KEYCODE_DPAD_LEFT);
+        final int rightKey = prefs.getInt(PREFERENCE_RIGHT_KEY, KeyEvent.KEYCODE_DPAD_RIGHT);
+        final int jumpKey = prefs.getInt(PREFERENCE_JUMP_KEY, KeyEvent.KEYCODE_SPACE);
+        final int attackKey = prefs.getInt(PREFERENCE_ATTACK_KEY, KeyEvent.KEYCODE_SHIFT_LEFT);
         
         mGame.setSoundEnabled(soundEnabled);
-        mGame.setControlOptions(clickAttack, tiltControls);
+        mGame.setControlOptions(clickAttack, tiltControls, tiltSensitivity);
+        mGame.setKeyConfig(leftKey, rightKey, jumpKey, attackKey);
         
         if (mSensorManager != null) {
             Sensor orientation = mSensorManager.getDefaultSensor(Sensor.TYPE_ORIENTATION);
