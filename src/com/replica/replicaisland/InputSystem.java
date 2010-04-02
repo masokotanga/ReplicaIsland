@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008 The Android Open Source Project
+ * Copyright (C) 2010 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -152,7 +152,8 @@ public class InputSystem extends BaseObject {
 	}
 	
 	private final static float KEY_ROLL_SPEED = 0.25f;
-	private final static float TILT_ROLL_SPEED = 5.0f;
+	private final static float TILT_ROLL_SPEED = 1.0f;
+	private final static float TILT_ROLL_MODIFIER = 8.0f;
     private final static float DPAD_TIMEOUT = -1.0f; //2.0f;
     private final static float ROLL_TIMEOUT = 0.1f;
     private final static int ROLL_HISTORY_SIZE = 10;
@@ -173,7 +174,7 @@ public class InputSystem extends BaseObject {
     private Vector2 mCurrentRollDirection = new Vector2();
    
     private boolean mUseOrientationForRoll = false;	// If true, pipes tilt into the directional pad.
-    
+    private float mOrientationSensitivityModifier = 0.5f;
        
     public InputSystem() {
         super();
@@ -272,7 +273,9 @@ public class InputSystem extends BaseObject {
         	}
         	
         	//roll(smoothedPitch * TILT_ROLL_SPEED, smoothedRoll * TILT_ROLL_SPEED);
-        	mDirectionalPad.press(time.getGameTime(), smoothedPitch * TILT_ROLL_SPEED, smoothedRoll * TILT_ROLL_SPEED);
+        	mDirectionalPad.press(time.getGameTime(), 
+        			smoothedPitch * (TILT_ROLL_SPEED + (TILT_ROLL_MODIFIER * mOrientationSensitivityModifier)), 
+        			smoothedRoll * (TILT_ROLL_SPEED + (TILT_ROLL_MODIFIER * mOrientationSensitivityModifier)));
         }
     }
     
@@ -406,12 +409,12 @@ public class InputSystem extends BaseObject {
         return mOrientationSensor.getY();
     }
 
-	public void setClickActive(boolean active) {
-		mClick.setActive(active);
-	}
-	
 	public void setUseOrientationForRoll(boolean rollWithOrientation) {
 		mUseOrientationForRoll = rollWithOrientation;
+	}
+
+	public void setOrientationSensitivityModifier(float modifier) {
+		mOrientationSensitivityModifier = modifier;
 	}
   
 }

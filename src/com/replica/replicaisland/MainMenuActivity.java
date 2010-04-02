@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008 The Android Open Source Project
+ * Copyright (C) 2010 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,9 +34,11 @@ public class MainMenuActivity extends Activity {
     private View mStartButton;
     private View mOptionsButton;
     private View mBackground;
+    private View mTicker;
     private Animation mButtonFlickerAnimation;
     private Animation mFadeOutAnimation;
     private Animation mAlternateFadeOutAnimation;
+    private Animation mFadeInAnimation;
     
     private final static int WHATS_NEW_DIALOG = 0;
     
@@ -50,6 +52,7 @@ public class MainMenuActivity extends Activity {
                 mFadeOutAnimation.setAnimationListener(new StartActivityAfterAnimation(i));
                 mBackground.startAnimation(mFadeOutAnimation);
                 mOptionsButton.startAnimation(mAlternateFadeOutAnimation);
+                mTicker.startAnimation(mAlternateFadeOutAnimation);
                 mPaused = true;
             }
         }
@@ -64,6 +67,7 @@ public class MainMenuActivity extends Activity {
                 mFadeOutAnimation.setAnimationListener(new StartActivityAfterAnimation(i));
                 mBackground.startAnimation(mFadeOutAnimation);
                 mStartButton.startAnimation(mAlternateFadeOutAnimation);
+                mTicker.startAnimation(mAlternateFadeOutAnimation);
                 mPaused = true;
             }
         }
@@ -91,10 +95,18 @@ public class MainMenuActivity extends Activity {
         mButtonFlickerAnimation = AnimationUtils.loadAnimation(this, R.anim.button_flicker);
         mFadeOutAnimation = AnimationUtils.loadAnimation(this, R.anim.fade_out);
         mAlternateFadeOutAnimation = AnimationUtils.loadAnimation(this, R.anim.fade_out);
+        mFadeInAnimation = AnimationUtils.loadAnimation(this, R.anim.fade_in);
         
         if (!LevelTree.isLoaded()) {
         	LevelTree.loadLevelTree(R.xml.level_tree, this);
         	LevelTree.loadAllDialog(this);
+        }
+        
+        mTicker = findViewById(R.id.ticker);
+        if (mTicker != null) {
+        	mTicker.setFocusable(true);
+        	mTicker.requestFocus();
+        	mTicker.setSelected(true);
         }
         
         // Keep the volume control type consistent across all activities.
@@ -177,6 +189,11 @@ public class MainMenuActivity extends Activity {
         
         if (mBackground != null) {
         	mBackground.clearAnimation();
+        }
+        
+        if (mTicker != null) {
+        	mTicker.clearAnimation();
+        	mTicker.setAnimation(mFadeInAnimation);
         }
         
         

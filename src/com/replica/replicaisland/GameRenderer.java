@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008 The Android Open Source Project
+ * Copyright (C) 2010 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -102,17 +102,21 @@ public class GameRenderer implements GLSurfaceView.Renderer {
        
         String extensions = gl.glGetString(GL10.GL_EXTENSIONS); 
         String version = gl.glGetString(GL10.GL_VERSION);
+        String renderer = gl.glGetString(GL10.GL_RENDERER);
+        boolean isSoftwareRenderer = renderer.contains("PixelFlinger");
         boolean isOpenGL10 = version.contains("1.0");
         boolean supportsDrawTexture = extensions.contains("draw_texture");
         // VBOs are standard in GLES1.1
-        boolean supportsVBOs = !isOpenGL10 || extensions.contains("vertex_buffer_object");
+        // No use using VBOs when software renderering, esp. since older versions of the software renderer
+        // had a crash bug related to freeing VBOs.
+        boolean supportsVBOs = !isSoftwareRenderer && (!isOpenGL10 || extensions.contains("vertex_buffer_object"));
         ContextParameters params = BaseObject.sSystemRegistry.contextParameters;
         params.supportsDrawTexture = supportsDrawTexture;
         params.supportsVBOs = supportsVBOs;
           
         hackBrokenDevices();
         
-        DebugLog.i("Graphics Support", version + ": " +(supportsDrawTexture ?  "draw texture," : "") + (supportsVBOs ? "vbos" : ""));
+        DebugLog.i("Graphics Support", version + " (" + renderer + "): " +(supportsDrawTexture ?  "draw texture," : "") + (supportsVBOs ? "vbos" : ""));
         
         mGame.onSurfaceCreated();
 
