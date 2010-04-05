@@ -51,6 +51,7 @@
 <string name="preference_enable_statistics">Report Play Statistics</string>
 <string name="preference_enable_statistics_summary">Sends anonymous play statistics to a server to help us make this game more fun.</string>
 
+
 <string name="preference_about">About</string>
 <string name="preference_about_title">About Replica Island</string>
 <string name="preference_about_summary">Replica Island was made by Chris Pruett and Genki Mine, and produced by Tom Moss.</string>
@@ -59,6 +60,9 @@
 <string name="preference_thanks_summary">Special Thanks to Adrian Havill, Casey Richardson, Jason Chen, Tim Mansfield, and the Android Team for their support of this project.</string>
 <string name="preference_licence_title">License</string>
 <string name="preference_licence_summary">Portions of this game are modifications based on work created and shared by Google and used according to terms described in the Creative Commons 3.0 Attribution License.</string>
+<string name="preference_misc">More Information</string>
+<string name="preference_enable_debug">Debug Log</string>
+<string name="preference_enable_debug_summary">Output various logs to logcat.  This option will slow the game down.</string>
 
 
 <string name="saved_game_erased_notification">Saved Game Erased</string>
@@ -74,6 +78,10 @@
 <string name="whats_new_dialog_ok">Rock on!</string>
 <string name="whats_new_dialog_message">Thanks for downloading Replica Island.\n\n
 <b>New in this version:</b>\n
+\t• Fixed crash when adjusting tilt sensitivity on Samsung Moment.\n
+\t• Added debug log option. \n
+\n
+<b>New in version 1.2:</b>\n
 \t• Crash fixes and general stability improvements. \n
 \t• Keyboard configuration for devices with hard keyboards. \n
 \t• Tilt control sensitivity controls. \n
@@ -87,7 +95,7 @@ own games, check out the source at our web site, replicaisland.net.
 Also note that this game sends anonymous play statistics back to a server.  If you’d rather not
 allow that, you can turn it off in the options screen.</string>
 
-<string name="whats_new_ticker">New in this version: Crash fixes, fixes to the confusing Memory #034 puzzle, configurable controls, configurable tilt sensitivity.</string>
+<string name="whats_new_ticker">New in this version: Fix to tilt sensitivity crash on Samsung Moment, debug log options.  New in 1.2: Crash fixes, fixes to the confusing Memory #034 puzzle, configurable controls, configurable tilt sensitivity.</string>
 
 <!-- Toast Messages -->
 <string name="memory_playback_start">MEMORY PLAYBACK START</string>

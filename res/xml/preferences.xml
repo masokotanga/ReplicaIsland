@@ -101,6 +101,7 @@
                     
     </PreferenceCategory>
              
+    
     <PreferenceCategory
             android:title="@string/preference_about">
 
@@ -112,23 +113,36 @@
 
         </PreferenceScreen>
         
-        <Preference
-                android:title="@string/preference_about_title"
-                android:summary="@string/preference_about_summary"
-                android:enabled="false"
-                android:selectable="false" />
+        <PreferenceScreen
+                android:title="@string/preference_misc">
+            
+            <CheckBoxPreference
+       			android:key="enableDebug"
+                android:title="@string/preference_enable_debug"
+                android:summaryOn="@string/preference_enable_debug_summary"
+                android:summaryOff="@string/preference_enable_debug_summary"
+                android:defaultValue="false"
+                android:persistent="true"
+                />
                 
-        <Preference
-                android:title="@string/preference_thanks_title"
-                android:summary="@string/preference_thanks_summary"
-                android:enabled="false"
-                android:selectable="false" />
-                
-        <Preference
-                android:title="@string/preference_licence_title"
-                android:summary="@string/preference_licence_summary"
-                android:enabled="false"
-                android:selectable="false" />
+	        <Preference
+	                android:title="@string/preference_about_title"
+	                android:summary="@string/preference_about_summary"
+	                android:enabled="false"
+	                android:selectable="false" />
+	                
+	        <Preference
+	                android:title="@string/preference_thanks_title"
+	                android:summary="@string/preference_thanks_summary"
+	                android:enabled="false"
+	                android:selectable="false" />
+	                
+	        <Preference
+	                android:title="@string/preference_licence_title"
+	                android:summary="@string/preference_licence_summary"
+	                android:enabled="false"
+	                android:selectable="false" />
+		</PreferenceScreen>
 
     </PreferenceCategory>
 

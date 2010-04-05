@@ -66,6 +66,7 @@ public class AndouKun extends Activity implements SensorEventListener {
     public static final String PREFERENCE_CLICK_ATTACK = "enableClickAttack";
     public static final String PREFERENCE_TILT_CONTROLS = "enableTiltControls";
     public static final String PREFERENCE_TILT_SENSITIVITY = "tiltSensitivity";
+    public static final String PREFERENCE_ENABLE_DEBUG = "enableDebug";
     
     public static final String PREFERENCE_LEFT_KEY = "keyLeft";
     public static final String PREFERENCE_RIGHT_KEY = "keyRight";
@@ -78,7 +79,7 @@ public class AndouKun extends Activity implements SensorEventListener {
     
     // If the version is a negative number, debug features (logging and a debug menu)
     // are enabled.
-    public static final int VERSION = 10;
+    public static final int VERSION = 12;
 
     private GLSurfaceView mGLSurfaceView;
     private Game mGame;
@@ -102,7 +103,11 @@ public class AndouKun extends Activity implements SensorEventListener {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if (VERSION < 0) {
+        
+        SharedPreferences prefs = getSharedPreferences(PREFERENCE_NAME, MODE_PRIVATE);
+        final boolean debugLogs = prefs.getBoolean(PREFERENCE_ENABLE_DEBUG, false);
+        
+        if (VERSION < 0 || debugLogs) {
         	DebugLog.setDebugLogging(true);
         } else {
         	DebugLog.setDebugLogging(false);
@@ -137,7 +142,7 @@ public class AndouKun extends Activity implements SensorEventListener {
         mLevelRow = 0;
         mLevelIndex = 0;
         
-        SharedPreferences prefs = getSharedPreferences(PREFERENCE_NAME, MODE_PRIVATE);
+        
         mPrefsEditor = prefs.edit();
         mLevelRow = prefs.getInt(PREFERENCE_LEVEL_ROW, 0);
         mLevelIndex = prefs.getInt(PREFERENCE_LEVEL_INDEX, 0);
@@ -245,12 +250,22 @@ public class AndouKun extends Activity implements SensorEventListener {
     @Override
     protected void onResume() {
         super.onResume();
-        DebugLog.d("AndouKun", "onResume");
-        mGLSurfaceView.onResume();
-        mGame.onResume(this, false);
         
         // Preferences may have changed while we were paused.
         SharedPreferences prefs = getSharedPreferences(PREFERENCE_NAME, MODE_PRIVATE);
+        final boolean debugLogs = prefs.getBoolean(PREFERENCE_ENABLE_DEBUG, false);
+        
+        if (VERSION < 0 || debugLogs) {
+        	DebugLog.setDebugLogging(true);
+        } else {
+        	DebugLog.setDebugLogging(false);
+        }
+        
+        DebugLog.d("AndouKun", "onResume");
+        mGLSurfaceView.onResume();
+        mGame.onResume(this, false);
+       
+        
         final boolean soundEnabled = prefs.getBoolean(PREFERENCE_SOUND_ENABLED, true);
         final boolean clickAttack = prefs.getBoolean(PREFERENCE_CLICK_ATTACK, true);
         final boolean tiltControls = prefs.getBoolean(PREFERENCE_TILT_CONTROLS, false);

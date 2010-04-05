@@ -82,14 +82,8 @@ public class SliderPreference extends Preference implements OnSeekBarChangeListe
 		return shell;
 	}
 	
-	public void onProgressChanged(SeekBar seekBar, int progress,boolean fromUser) {
-			
-		if(!callChangeListener(progress)){
-			seekBar.setProgress(mValue); 
-			return; 
-		}
+	public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
 		
-		seekBar.setProgress(progress);
 		mValue = progress;
 		persistInt(mValue);
 		
