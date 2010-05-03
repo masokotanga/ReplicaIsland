@@ -55,6 +55,16 @@
                 replica:attackKey="keyAttack"
                 />
                 
+           	<com.replica.replicaisland.SliderPreference
+                android:key="movementSensitivity"
+                android:defaultValue="100"
+                android:title="@string/preference_movement_sensitivity" 
+                android:summary="@string/preference_movement_sensitivity_summary"
+                replica:maxText="@string/preference_movement_max"
+                replica:minText="@string/preference_movement_min" 
+                android:persistent="true"/>     
+                
+               
             <CheckBoxPreference
        			android:key="enableTiltControls"
                 android:title="@string/preference_enable_tilt_controls"
@@ -76,6 +86,15 @@
  
         </PreferenceScreen>
             
+        <CheckBoxPreference
+       			android:key="safeMode"
+                android:title="@string/preference_safe_mode"
+                android:summaryOn="@string/preference_safe_mode_summary"
+                android:summaryOff="@string/preference_safe_mode_summary"
+                android:defaultValue="false"
+                android:persistent="true"
+                />
+                
     </PreferenceCategory>
     
      <PreferenceCategory

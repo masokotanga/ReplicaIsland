@@ -32,8 +32,8 @@ import com.replica.replicaisland.CollisionParameters.HitType;
  * HitReactionComponent, if one has been specified.
  */
 public class GameObjectCollisionSystem extends BaseObject {
-    private static final int MAX_COLLIDING_OBJECTS = 64;
-    private static final int COLLISION_RECORD_POOL_SIZE = 64;
+    private static final int MAX_COLLIDING_OBJECTS = 256;
+    private static final int COLLISION_RECORD_POOL_SIZE = 256;
     private static final CollisionVolumeComparator sCollisionVolumeComparator 
         = new CollisionVolumeComparator();
     private static CollisionVolume.FlipInfo sFlip = new CollisionVolume.FlipInfo();

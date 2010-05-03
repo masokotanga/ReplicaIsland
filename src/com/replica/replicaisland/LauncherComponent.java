@@ -127,8 +127,9 @@ public class LauncherComponent extends GameComponent {
         				position.x + (mLaunchEffectOffsetX * parentObject.facingDirection.x),
         				position.y + (mLaunchEffectOffsetY * parentObject.facingDirection.y),
         				false);
-        		
-        		manager.add(effect);
+        		if (effect != null) {
+        			manager.add(effect);
+        		}
         	}
         }
     }

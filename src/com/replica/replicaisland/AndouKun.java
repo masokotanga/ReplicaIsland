@@ -60,12 +60,14 @@ public class AndouKun extends Activity implements SensorEventListener {
     public static final String PREFERENCE_LEVEL_INDEX = "levelIndex";
     public static final String PREFERENCE_LEVEL_COMPLETED = "levelsCompleted";
     public static final String PREFERENCE_SOUND_ENABLED = "enableSound";
+    public static final String PREFERENCE_SAFE_MODE = "safeMode";
     public static final String PREFERENCE_SESSION_ID = "session";
     public static final String PREFERENCE_LAST_VERSION = "lastVersion";
     public static final String PREFERENCE_STATS_ENABLED = "enableStats";
     public static final String PREFERENCE_CLICK_ATTACK = "enableClickAttack";
     public static final String PREFERENCE_TILT_CONTROLS = "enableTiltControls";
     public static final String PREFERENCE_TILT_SENSITIVITY = "tiltSensitivity";
+    public static final String PREFERENCE_MOVEMENT_SENSITIVITY = "movementSensitivity";
     public static final String PREFERENCE_ENABLE_DEBUG = "enableDebug";
     
     public static final String PREFERENCE_LEFT_KEY = "keyLeft";
@@ -79,7 +81,7 @@ public class AndouKun extends Activity implements SensorEventListener {
     
     // If the version is a negative number, debug features (logging and a debug menu)
     // are enabled.
-    public static final int VERSION = 12;
+    public static final int VERSION = 13;
 
     private GLSurfaceView mGLSurfaceView;
     private Game mGame;
@@ -125,6 +127,7 @@ public class AndouKun extends Activity implements SensorEventListener {
         
         //mGLSurfaceView.setGLWrapper(new GLErrorLogger());
         mGLSurfaceView.setEGLConfigChooser(false); // 16 bit, no z-buffer
+        //mGLSurfaceView.setDebugFlags(GLSurfaceView.DEBUG_CHECK_GL_ERROR | GLSurfaceView.DEBUG_LOG_GL_CALLS);
         mGame = new Game();
         mGame.setSurfaceView(mGLSurfaceView);
         DisplayMetrics dm = new DisplayMetrics();
@@ -267,9 +270,11 @@ public class AndouKun extends Activity implements SensorEventListener {
        
         
         final boolean soundEnabled = prefs.getBoolean(PREFERENCE_SOUND_ENABLED, true);
+        final boolean safeMode = prefs.getBoolean(PREFERENCE_SAFE_MODE, false);
         final boolean clickAttack = prefs.getBoolean(PREFERENCE_CLICK_ATTACK, true);
         final boolean tiltControls = prefs.getBoolean(PREFERENCE_TILT_CONTROLS, false);
         final int tiltSensitivity = prefs.getInt(PREFERENCE_TILT_SENSITIVITY, 50);
+        final int movementSensitivity = prefs.getInt(PREFERENCE_MOVEMENT_SENSITIVITY, 100);
         
         final int leftKey = prefs.getInt(PREFERENCE_LEFT_KEY, KeyEvent.KEYCODE_DPAD_LEFT);
         final int rightKey = prefs.getInt(PREFERENCE_RIGHT_KEY, KeyEvent.KEYCODE_DPAD_RIGHT);
@@ -277,8 +282,9 @@ public class AndouKun extends Activity implements SensorEventListener {
         final int attackKey = prefs.getInt(PREFERENCE_ATTACK_KEY, KeyEvent.KEYCODE_SHIFT_LEFT);
         
         mGame.setSoundEnabled(soundEnabled);
-        mGame.setControlOptions(clickAttack, tiltControls, tiltSensitivity);
+        mGame.setControlOptions(clickAttack, tiltControls, tiltSensitivity, movementSensitivity);
         mGame.setKeyConfig(leftKey, rightKey, jumpKey, attackKey);
+        mGame.setSafeMode(safeMode);
         
         if (mSensorManager != null) {
             Sensor orientation = mSensorManager.getDefaultSensor(Sensor.TYPE_ORIENTATION);
@@ -293,35 +299,31 @@ public class AndouKun extends Activity implements SensorEventListener {
 
     @Override
     public boolean onTrackballEvent(MotionEvent event) {
-        mGame.onTrackballEvent(event);
-        final long time = System.currentTimeMillis();
-        if (time - mLastRollTime < 4) {
-	        // Sleep so that the main thread doesn't get flooded with UI events.
-	        try {
-	            Thread.sleep(4);
-	        } catch (InterruptedException e) {
-	            // No big deal if this sleep is interrupted.
-	        }
-        }
-        mLastRollTime = time;
+    	if (!mGame.isPaused()) {
+	        mGame.onTrackballEvent(event);
+	        final long time = System.currentTimeMillis();
+	        mLastRollTime = time;
+    	}
         return true;
     }
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-    	mGame.onTouchEvent(event);
-    	
-        final long time = System.currentTimeMillis();
-        if (event.getAction() == MotionEvent.ACTION_MOVE && time - mLastTouchTime < 32) {
-	        // Sleep so that the main thread doesn't get flooded with UI events.
-	        try {
-	            Thread.sleep(32);
-	        } catch (InterruptedException e) {
-	            // No big deal if this sleep is interrupted.
+    	if (!mGame.isPaused()) {
+    		mGame.onTouchEvent(event);
+	    	
+	        final long time = System.currentTimeMillis();
+	        if (event.getAction() == MotionEvent.ACTION_MOVE && time - mLastTouchTime < 32) {
+		        // Sleep so that the main thread doesn't get flooded with UI events.
+		        try {
+		            Thread.sleep(32);
+		        } catch (InterruptedException e) {
+		            // No big deal if this sleep is interrupted.
+		        }
+		        mGame.getRenderer().waitDrawingComplete();
 	        }
-	        mGame.getRenderer().waitDrawingComplete();
-        }
-        mLastTouchTime = time;
+	        mLastTouchTime = time;
+    	}
         return true;
     }
     

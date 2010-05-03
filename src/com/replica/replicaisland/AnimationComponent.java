@@ -203,10 +203,11 @@ public class AnimationComponent extends GameComponent {
             float opacity = 1.0f;
             
             if (currentAction == ActionType.MOVE) {
-                InputSystem input = sSystemRegistry.inputSystem;
-                if (input.getRollDirection().x < 0.0f) {
+                InputGameInterface input = sSystemRegistry.inputGameInterface;
+                final InputXY dpad = input.getDirectionalPad();
+                if (dpad.getX() < 0.0f) {
                     parentObject.facingDirection.x = -1.0f; 
-                } else if (input.getRollDirection().x > 0.0f) {
+                } else if (dpad.getX() > 0.0f) {
                     parentObject.facingDirection.x = 1.0f;
                 }
                 
@@ -221,14 +222,11 @@ public class AnimationComponent extends GameComponent {
                         mSprite.playAnimation(PlayerAnimations.MOVE.ordinal());
                     }  
                     
-                    if (input.getClickPressed() || 
-                    		(input.getTouchPressed() && input.getTouchedWithinRegion(
-        	                        ButtonConstants.STOMP_BUTTON_REGION_X, 
-        	                        ButtonConstants.STOMP_BUTTON_REGION_Y, 
-        	                        ButtonConstants.STOMP_BUTTON_REGION_WIDTH, 
-        	                        ButtonConstants.STOMP_BUTTON_REGION_HEIGHT))) {
+                    final InputButton attackButton = input.getAttackButton();
+                    
+                    if (attackButton.getPressed()) {
                         // charge
-                        final float pressedTime = gameTime - input.getLastClickTime();
+                        final float pressedTime = gameTime - attackButton.getLastPressedTime();
                         final float wave = (float)Math.cos(pressedTime * (float)Math.PI * 2.0f);
                         opacity = (wave * 0.25f) + 0.75f;
                     }

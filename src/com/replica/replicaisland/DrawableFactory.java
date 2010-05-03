@@ -23,7 +23,7 @@ package com.replica.replicaisland;
  * pools of objects so no actual allocations occur after bootstrap.
  */
 public class DrawableFactory extends BaseObject {
-    private final static int BITMAP_POOL_SIZE = 128;
+    private final static int BITMAP_POOL_SIZE = 512;
     
     private DrawableBitmapPool mBitmapPool;
     private ScrollableBitmapPool mScrollableBitmapPool;

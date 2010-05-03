@@ -508,6 +508,10 @@ public class GLSurfaceView extends SurfaceView implements SurfaceHolder.Callback
     public void loadBuffers(BufferLibrary library) {
         mGLThread.loadBuffers(library);
     }
+    
+    public void setSafeMode(boolean safeMode) {
+    	mGLThread.setSafeMode(safeMode);
+    }
 
     /**
      * Queue a runnable to be run on the GL rendering thread. This can be used
@@ -1121,7 +1125,7 @@ public class GLSurfaceView extends SurfaceView implements SurfaceHolder.Callback
                 int w = 0;
                 int h = 0;
                 Runnable event = null;
-
+                int framesSinceResetHack = 0;
                 while (true) {
                     synchronized (sGLThreadManager) {
                         while (true) {
@@ -1244,6 +1248,7 @@ public class GLSurfaceView extends SurfaceView implements SurfaceHolder.Callback
 	                        mGL = gl;
 	                        mRenderer.onSurfaceCreated(gl, mEglHelper.mEglConfig);
 	                        createEglSurface = false;
+	                        framesSinceResetHack = 0;
 	                    }
 	                    
 	
@@ -1260,11 +1265,34 @@ public class GLSurfaceView extends SurfaceView implements SurfaceHolder.Callback
 	                    if (LOG_RENDERER) {
 	                        DebugLog.w("GLThread", "onDrawFrame");
 	                    }
-	                    mRenderer.onDrawFrame(gl);
+	                    
+	                    // Some phones (Motorola Cliq, Backflip; also the 
+	                    // Huawei Pulse, and maybe the Samsung Behold II), use a
+	                    // broken graphics driver from Qualcomm.  It fails in a
+	                    // very specific case: when the EGL context is lost due to
+	                    // resource constraints, and then recreated, if GL commands
+	                    // are sent within two frames of the surface being created
+	                    // then eglSwapBuffers() will hang.  Normally, applications using
+	                    // the stock GLSurfaceView never run into this problem because it
+	                    // discards the EGL context explicitly on every pause.  But
+	                    // I've modified this class to not do that--I only want to reload
+	                    // textures when the context is actually lost--so this bug
+	                    // revealed itself as black screens on devices like the Cliq.
+	                    // Thus, in "safe mode," I force two swaps to occur before 
+	                    // issuing any GL commands.  Don't ask me how long it took
+	                    // to figure this out.
+	                    if (framesSinceResetHack > 1 || !mSafeMode) {
+	                    	mRenderer.onDrawFrame(gl);
+	                    } 
+	                    
+	                    framesSinceResetHack++;
+
 	                    if(!mEglHelper.swap()) {
 	                        if (LOG_SURFACE) {
 	                            DebugLog.i("GLThread", "egl surface lost tid=" + getId());
 	                        }
+	                        
+	                        stopEglLocked();
 	                    }
 	                
                     }
@@ -1475,6 +1503,10 @@ public class GLSurfaceView extends SurfaceView implements SurfaceHolder.Callback
                 sGLThreadManager.notifyAll();
             }
         }
+        
+        public void setSafeMode(boolean on) {
+        	mSafeMode = on;
+        }
 
         // Once the thread is started, all accesses to the following member
         // variables are protected by the sGLThreadManager monitor
@@ -1493,6 +1525,7 @@ public class GLSurfaceView extends SurfaceView implements SurfaceHolder.Callback
         private ArrayList<Runnable> mEventQueue = new ArrayList<Runnable>();
         private GL10 mGL;
         private boolean mHasFocus;
+        private boolean mSafeMode = false;
 
         // End of member variables protected by the sGLThreadManager monitor.
 

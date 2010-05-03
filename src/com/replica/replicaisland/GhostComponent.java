@@ -58,7 +58,7 @@ public class GhostComponent extends GameComponent {
     public void update(float timeDelta, BaseObject parent) {   
         GameObject parentObject = (GameObject) parent;
         boolean timeToRelease = false;
-        final InputSystem input = sSystemRegistry.inputSystem;
+        final InputGameInterface input = sSystemRegistry.inputGameInterface;
         final CameraSystem camera = sSystemRegistry.cameraSystem;
 
         if (parentObject.life > 0) {
@@ -90,44 +90,39 @@ public class GhostComponent extends GameComponent {
             if (input != null) {
                 
                 if (mUseOrientationSensor) {
+                	final InputXY tilt = input.getTilt();
                     parentObject.getTargetVelocity().x = 
-                        input.getPitch() * mMovementSpeed;
+                    	tilt.getX() * mMovementSpeed;
                     
                     parentObject.getTargetVelocity().y = 
-                        input.getRoll() * mMovementSpeed;
+                    	tilt.getY() * mMovementSpeed;
                    
                     parentObject.getAcceleration().x = mAcceleration;
                     parentObject.getAcceleration().y = mAcceleration; 
                 } else {
-                    final Vector2 rollDirection = input.getRollDirection();
+                	final InputXY dpad = input.getDirectionalPad();
                     parentObject.getTargetVelocity().x = 
-                        rollDirection.x * mMovementSpeed;
+                    	dpad.getX() * mMovementSpeed;
                
                     parentObject.getAcceleration().x = mAcceleration;
                 }
 
-                final boolean buttonPressed = input.getTouchPressed()
-	                && input.getTouchedWithinRegion(
-	                        ButtonConstants.FLY_BUTTON_REGION_X, 
-	                        ButtonConstants.FLY_BUTTON_REGION_Y, 
-	                        ButtonConstants.FLY_BUTTON_REGION_WIDTH, 
-	                        ButtonConstants.FLY_BUTTON_REGION_HEIGHT);
+                final InputButton jumpButton = input.getJumpButton();
+                final TimeSystem time = sSystemRegistry.timeSystem;
+                final float gameTime = time.getGameTime();
                 
-                if (buttonPressed 
-                		&& input.getTouchTriggered() 
-                        && parentObject.touchingGround() 
+                if (jumpButton.getTriggered(gameTime) 
+                        && parentObject.touchingGround()
+                        && parentObject.getVelocity().y <= 0.0f
                         && !mChangeActionOnButton) {
-                    parentObject.getImpulse().y += mJumpImpulse;// * timeDelta;
-                } else if (mChangeActionOnButton && buttonPressed) {
+                    parentObject.getImpulse().y += mJumpImpulse;
+                } else if (mChangeActionOnButton && jumpButton.getPressed()) {
                 	parentObject.setCurrentAction(mButtonPressedAction);
                 }
                 
-                if (input.getClickTriggered() || 
-                		(input.getTouchTriggered() && input.getTouchedWithinRegion(
-    	                        ButtonConstants.STOMP_BUTTON_REGION_X, 
-    	                        ButtonConstants.STOMP_BUTTON_REGION_Y, 
-    	                        ButtonConstants.STOMP_BUTTON_REGION_WIDTH, 
-    	                        ButtonConstants.STOMP_BUTTON_REGION_HEIGHT))) {
+                final InputButton attackButton = input.getAttackButton();
+
+                if (attackButton.getTriggered(gameTime)) {
                     timeToRelease = true;
                 }
             }
@@ -186,10 +181,10 @@ public class GhostComponent extends GameComponent {
             } else {
                 control.deactivateGhost(mDelayOnRelease);
             }
-            final InputSystem input = sSystemRegistry.inputSystem;
+           /* final InputSystem input = sSystemRegistry.inputSystem;
             if (input != null) {
                 input.clearClickTriggered();
-            }
+            }*/
         }
         
         if (mAmbientSoundStream > -1) {

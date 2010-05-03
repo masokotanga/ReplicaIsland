@@ -177,7 +177,7 @@ public class GameRenderer implements GLSurfaceView.Renderer {
 
     /** Draws the scene.  Note that the draw queue is locked for the duration of this function. */
     public void onDrawFrame(GL10 gl) {
-        
+      
         long time = SystemClock.uptimeMillis();
         long time_delta = (time - mLastTime);
         

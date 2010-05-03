@@ -17,9 +17,7 @@
 package com.replica.replicaisland;
 
 import android.util.AttributeSet;
-import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.SeekBar.OnSeekBarChangeListener;
@@ -38,10 +36,14 @@ public class SliderPreference extends Preference implements OnSeekBarChangeListe
 	
 	public SliderPreference(Context context) {
 		super(context);
+		
+		setWidgetLayoutResource(R.layout.slider_preference);
 	}
 	
 	public SliderPreference(Context context, AttributeSet attrs) {
 		this(context, attrs, android.R.attr.preferenceStyle);
+		
+		setWidgetLayoutResource(R.layout.slider_preference);
 	}
 	
 	public SliderPreference(Context context, AttributeSet attrs, int defStyle) {
@@ -53,41 +55,35 @@ public class SliderPreference extends Preference implements OnSeekBarChangeListe
 		mMaxText = a.getString(R.styleable.SliderPreference_maxText);
 		
         a.recycle();
+        
+        setWidgetLayoutResource(R.layout.slider_preference);
 	}
 	
 	@Override
-	protected View onCreateView(ViewGroup parent){
-		View shell = super.onCreateView(parent);
-		
-		ViewGroup widget = (ViewGroup)shell.findViewById(android.R.id.widget_frame);
-		
-		View root = LayoutInflater.from(getContext()).inflate(
-				R.layout.slider_preference, widget, true);
-		
+	protected void onBindView(View view) {
+		super.onBindView(view);
+	
 		if (mMinText != null) {
-			TextView minText = (TextView)root.findViewById(R.id.min);
+			TextView minText = (TextView)view.findViewById(R.id.min);
 			minText.setText(mMinText);
 		}
 		
 		if (mMaxText != null) {
-			TextView minText = (TextView)root.findViewById(R.id.max);
-			minText.setText(mMaxText);
+			TextView maxText = (TextView)view.findViewById(R.id.max);
+			maxText.setText(mMaxText);
 		}
 		
-		SeekBar bar = (SeekBar)root.findViewById(R.id.slider);
+		SeekBar bar = (SeekBar)view.findViewById(R.id.slider);
 		bar.setMax(MAX_SLIDER_VALUE);
 		bar.setProgress(mValue);
 		bar.setOnSeekBarChangeListener(this);
-		
-		return shell;
 	}
 	
 	public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-		
-		mValue = progress;
-		persistInt(mValue);
-		
-		notifyChanged();
+		if (fromUser) {
+			mValue = progress;
+			persistInt(mValue);
+		}
 	}
 	
 	public void onStartTrackingTouch(SeekBar seekBar) {
@@ -98,7 +94,7 @@ public class SliderPreference extends Preference implements OnSeekBarChangeListe
 	
 	
 	@Override 
-	protected Object onGetDefaultValue(TypedArray ta,int index){
+	protected Object onGetDefaultValue(TypedArray ta,int index) {
 		int dValue = (int)ta.getInt(index, INITIAL_VALUE);
 		
 		return (int)Utils.clamp(dValue, 0, MAX_SLIDER_VALUE);

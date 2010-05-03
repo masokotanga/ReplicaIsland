@@ -27,42 +27,9 @@ import android.view.KeyEvent;
  */
 public class GameThread implements Runnable {
     private long mLastTime;
-    private float mLastMotionX;
-    private float mLastMotionY;
-    private int mLastTouchX;
-    private int mLastTouchY;
-    private boolean mTouchReleased;
-    private boolean mClickUp;
-    private boolean mClickDown;
-    private float mOrientationX;
-    private float mOrientationY;
-    private float mOrientationZ;
-    private boolean mOrientationChanged;
-    private boolean mKeyLeft;
-    private boolean mKeyRight;
-    private boolean mKeyDown;
-    private boolean mKeyUp;
-    private boolean mKeyTouch;
-    private boolean mKeyClick;
-    private boolean mKeyInputReceived;
-    private boolean mKeyLeftUp;
-    private boolean mKeyRightUp;
-    private boolean mKeyDownUp;
-    private boolean mKeyUpUp;
-    private boolean mKeyTouchUp;
-    private boolean mKeyClickUp;
     
-    private boolean mClickActive;
-
-    // Configurable key codes
-	private int mLeftKey = KeyEvent.KEYCODE_DPAD_LEFT;
-	private int mRightKey = KeyEvent.KEYCODE_DPAD_RIGHT;
-	private int mJumpKey = KeyEvent.KEYCODE_SPACE;
-	private int mAttackKey = KeyEvent.KEYCODE_SHIFT_LEFT;
-	
     private ObjectManager mGameRoot;
     private GameRenderer mRenderer;
-    private Object mInputLock;
     private Object mPauseLock;
     private boolean mFinished;
     private boolean mPaused = false;
@@ -74,7 +41,6 @@ public class GameThread implements Runnable {
     public GameThread(GameRenderer renderer) {
         mLastTime = SystemClock.uptimeMillis();
         mRenderer = renderer;
-        mInputLock = new Object();
         mPauseLock = new Object();
         mFinished = false;
         mPaused = false;
@@ -96,73 +62,6 @@ public class GameThread implements Runnable {
                         secondsDelta = 0.1f;
                     }
                     mLastTime = time;
-    
-                    synchronized (mInputLock) {
-                        
-                       
-                        if (mKeyInputReceived) {
-                            BaseObject.sSystemRegistry.inputSystem.keyUp(
-                                    mKeyLeftUp,
-                                    mKeyRightUp,
-                                    mKeyUpUp,
-                                    mKeyDownUp,
-                                    mKeyTouchUp,
-                                    mKeyClickUp);
-                            BaseObject.sSystemRegistry.inputSystem.keyDown(
-                                    mKeyLeft,
-                                    mKeyRight,
-                                    mKeyUp,
-                                    mKeyDown,
-                                    mKeyTouch,
-                                    mKeyClick);
-                            mKeyInputReceived = false;
-                            mKeyLeft = false;
-                            mKeyRight = false;
-                            mKeyUp = false;
-                            mKeyDown = false;
-                            mKeyTouch = false;
-                            mKeyClick = false;
-                            mKeyLeftUp = false;
-                            mKeyRightUp = false;
-                            mKeyUpUp = false;
-                            mKeyDownUp = false;
-                            mKeyTouchUp = false;
-                            mKeyClickUp = false;
-                        }
-                        
-                        if (mLastMotionX != 0 || mLastMotionY != 0) {
-                            BaseObject.sSystemRegistry.inputSystem
-                                            .roll(mLastMotionX, mLastMotionY);
-                            mLastMotionX = 0;
-                            mLastMotionY = 0;
-                        }
-                        if (mLastTouchX != 0 || mLastTouchY != 0) {
-                            BaseObject.sSystemRegistry.inputSystem
-                                            .touch(mLastTouchX, mLastTouchY, mTouchReleased);
-                            mLastTouchX = 0;
-                            mLastTouchY = 0;
-                            mTouchReleased = false;
-                        }
-                        
-                        if (mClickDown) {
-                            BaseObject.sSystemRegistry.inputSystem.clickDown();
-                            mClickDown = false;
-                        } 
-                        if (mClickUp) {
-                            BaseObject.sSystemRegistry.inputSystem.clickUp();
-                            mClickUp = false;
-                        }
-                        
-                        if (mOrientationChanged) {
-                            BaseObject.sSystemRegistry.inputSystem.setOrientation(
-                                    mOrientationX,
-                                    mOrientationY,
-                                    mOrientationZ);
-                            mOrientationChanged = false;
-                        }
-                        
-                        
-                    }
     
                     mGameRoot.update(secondsDelta, null);
     
@@ -186,6 +85,7 @@ public class GameThread implements Runnable {
                         DebugLog.d("Game Profile", "Average: " + averageFrameTime);
                         mProfileTime = 0;
                         mProfileFrames = 0;
+                        mGameRoot.sSystemRegistry.hudSystem.setFPS(1000 / (int)averageFrameTime);
                     }
                 }
                 // If the game logic completed in less than 16ms, that means it's running
@@ -250,104 +150,5 @@ public class GameThread implements Runnable {
     public void setGameRoot(ObjectManager gameRoot) {
         mGameRoot = gameRoot;
     }
-
-    public void rollEvent(float f, float g) {
-        synchronized (mInputLock) {
-            mLastMotionX += f;
-            mLastMotionY += g;
-        }
-    }
-    
-    public void clickEvent(boolean down) {
-        synchronized (mInputLock) {
-            if (down) {
-                mClickDown = true;
-            } else {
-                mClickUp = true;
-            }
-        }
-    }
-    
-    public void orientationEvent(float x, float y, float z) {
-        synchronized (mInputLock) {
-            mOrientationX = x;
-            mOrientationY = y;
-            mOrientationZ = z;
-            mOrientationChanged = true;
-        }
-    }
-    
-    public void touchDownEvent(float x, float y) {
-        synchronized (mInputLock) {
-        	mTouchReleased = false;
-            mLastTouchX = (int)x;
-            mLastTouchY = (int)y;
-        }
-    }
-    
-    public void touchUpEvent(float x, float y) {
-        synchronized (mInputLock) {
-        	mTouchReleased = true;
-            mLastTouchX = (int)x;
-            mLastTouchY = (int)y;
-        }
-    }
-    
-    public boolean keydownEvent(int keycode) {
-        boolean ateKey = true;
-        synchronized (mInputLock) {
-        	if (keycode == mLeftKey) {
-                mKeyLeft = true;
-            } else if (keycode == mRightKey) {
-                mKeyRight = true;
-            } else if (keycode == mJumpKey) {
-                mKeyTouch = true;
-            } else if (keycode == mAttackKey) {
-            	mKeyClick = true;
-            } else if (mClickActive && keycode == KeyEvent.KEYCODE_DPAD_CENTER) {
-                mKeyClick = true;
-            } else {
-                ateKey = false;
-            }  
-            
-            mKeyInputReceived = ateKey;
-        }
-        return ateKey;
-    }
-    
-    public boolean keyupEvent(int keycode) {
-        boolean ateKey = true;
-        synchronized (mInputLock) {
-            if (keycode == mLeftKey) {
-                mKeyLeftUp = true;
-            } else if (keycode == mRightKey) {
-                mKeyRightUp = true;
-            } else if (keycode == mJumpKey) {
-                mKeyTouchUp = true;
-            } else if (keycode == mAttackKey) {
-            	mKeyClickUp = true;
-            } else if (mClickActive && keycode == KeyEvent.KEYCODE_DPAD_CENTER) {
-                mKeyClickUp = true;
-            } else {
-                ateKey = false;
-            }            
-            mKeyInputReceived = ateKey;
-        }
-        return ateKey;
-    }
-
-	public void setKeyConfig(int leftKey, int rightKey, int jumpKey,
-			int attackKey) {
-		synchronized (mInputLock) {
-			mLeftKey = leftKey;
-			mRightKey = rightKey;
-			mJumpKey = jumpKey;
-			mAttackKey = attackKey;
-		}
-	}
-
-	public void setClickActive(boolean clickAttack) {
-		mClickActive = clickAttack;
-	}
     
 }

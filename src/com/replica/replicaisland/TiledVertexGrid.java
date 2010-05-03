@@ -35,6 +35,8 @@ public class TiledVertexGrid extends BaseObject {
     private int mTilesPerRow;
     private int mTilesPerColumn;
     
+    private Boolean mGenerated;
+    
     public TiledVertexGrid(Texture texture, int width, int height, int tileWidth, int tileHeight) {
         super();
         mTileWidth = tileWidth;
@@ -42,12 +44,11 @@ public class TiledVertexGrid extends BaseObject {
         mWidth = width;
         mHeight = height;
         mTexture = texture;
+        mGenerated = false;
     }
     
     @Override
     public void reset() {
-        // TODO Auto-generated method stub
-
     }
 
     public void setWorld(TiledWorld world) {
@@ -129,7 +130,7 @@ public class TiledVertexGrid extends BaseObject {
     public void draw(float x, float y, float scrollOriginX, float scrollOriginY) {
         TiledWorld world = mWorld;
         GL10 gl = OpenGLSystem.getGL();
-        if (mTileMap == null && world != null && gl != null && mTexture != null) {
+        if (!mGenerated && world != null && gl != null && mTexture != null) {
             final int tilesAcross = mWorld.getWidth();
             final int tilesDown = mWorld.getHeight();
             
@@ -143,13 +144,14 @@ public class TiledVertexGrid extends BaseObject {
             
             Grid grid = generateGrid((int)mWorldPixelWidth, (int)mWorldPixelHeight, 0, 0);
             mTileMap = grid;
+            mGenerated = true;
             if (grid != null) {
                 bufferLibrary.add(grid);
                 if (sSystemRegistry.contextParameters.supportsVBOs) {
                 	grid.generateHardwareBuffers(gl);
                 }
             }
-           
+                       
         }
         
         final Grid tileMap = mTileMap;
