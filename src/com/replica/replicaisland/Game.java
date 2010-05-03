@@ -17,6 +17,7 @@
 package com.replica.replicaisland;
 
 import android.content.Context;
+import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.widget.Toast;
 
@@ -93,9 +94,12 @@ public class Game extends AllocationGuard {
             MainLoop gameRoot = new MainLoop();
     
             InputSystem input = new InputSystem();
-            gameRoot.add(input);
             BaseObject.sSystemRegistry.inputSystem = input;
+            BaseObject.sSystemRegistry.registerForReset(input);
 
+            InputGameInterface inputInterface = new InputGameInterface();
+            gameRoot.add(inputInterface);
+            BaseObject.sSystemRegistry.inputGameInterface = inputInterface;
             
             LevelSystem level = new LevelSystem();
             BaseObject.sSystemRegistry.levelSystem = level;
@@ -198,6 +202,9 @@ public class Game extends AllocationGuard {
                             longTermTextureLibrary.allocateTexture(R.drawable.ui_gem), 0, 0));
             
             BaseObject.sSystemRegistry.hudSystem = hud;
+            if (AndouKun.VERSION < 0) {
+            	hud.setShowFPS(true);
+            }
             gameRoot.add(hud);
     
             BaseObject.sSystemRegistry.vibrationSystem = new VibrationSystem();
@@ -366,19 +373,20 @@ public class Game extends AllocationGuard {
 
     public boolean onTrackballEvent(MotionEvent event) {
         if (mRunning) {
-            mGameThread.rollEvent(event.getRawX(), event.getRawY());
-            boolean clickDown = event.getAction() == MotionEvent.ACTION_DOWN;
-            if ((clickDown && event.getPressure() > 0) 
-                    || event.getAction() == MotionEvent.ACTION_UP){
-                mGameThread.clickEvent(clickDown);
-            }
+        	if (event.getAction() == MotionEvent.ACTION_MOVE) {
+        		BaseObject.sSystemRegistry.inputSystem.roll(event.getRawX(), event.getRawY());
+        	} else if (event.getAction() == MotionEvent.ACTION_DOWN) {
+        		onKeyDownEvent(KeyEvent.KEYCODE_DPAD_CENTER);
+        	} else if (event.getAction() == MotionEvent.ACTION_UP) {
+        		onKeyUpEvent(KeyEvent.KEYCODE_DPAD_CENTER);
+        	}
         }
         return true;
     }
     
     public boolean onOrientationEvent(float x, float y, float z) {
         if (mRunning) {
-            mGameThread.orientationEvent(x, y, z);
+        	BaseObject.sSystemRegistry.inputSystem.setOrientation(x, y, z);
         }
         return true;
     }
@@ -386,10 +394,10 @@ public class Game extends AllocationGuard {
     public boolean onTouchEvent(MotionEvent event) {
         if (mRunning) {
         	if (event.getAction() == MotionEvent.ACTION_UP) {
-        		mGameThread.touchUpEvent(event.getRawX() * (1.0f / mContextParameters.viewScaleX), 
+        		BaseObject.sSystemRegistry.inputSystem.touchUp(event.getRawX() * (1.0f / mContextParameters.viewScaleX), 
         				event.getRawY() * (1.0f / mContextParameters.viewScaleY));
         	} else {
-        		mGameThread.touchDownEvent(event.getRawX() * (1.0f / mContextParameters.viewScaleX),
+        		BaseObject.sSystemRegistry.inputSystem.touchDown(event.getRawX() * (1.0f / mContextParameters.viewScaleX),
         				event.getRawY() * (1.0f / mContextParameters.viewScaleY));
         	}
             
@@ -400,7 +408,7 @@ public class Game extends AllocationGuard {
     public boolean onKeyDownEvent(int keyCode) {
         boolean result = false;
         if (mRunning) {
-            result = mGameThread.keydownEvent(keyCode);
+            BaseObject.sSystemRegistry.inputSystem.keyDown(keyCode);
         }
         return result;
     }
@@ -408,7 +416,7 @@ public class Game extends AllocationGuard {
     public boolean onKeyUpEvent(int keyCode) {
         boolean result = false;
         if (mRunning) {
-            result = mGameThread.keyupEvent(keyCode);
+        	BaseObject.sSystemRegistry.inputSystem.keyUp(keyCode);
         }
         return result;
     }
@@ -485,12 +493,15 @@ public class Game extends AllocationGuard {
 		BaseObject.sSystemRegistry.soundSystem.setSoundEnabled(soundEnabled);
 	}
 	
-	public void setControlOptions(boolean clickAttack, boolean tiltControls, int tiltSensitivity) {
-		if (mGameThread != null) {
-			mGameThread.setClickActive(clickAttack);
-		}
-		BaseObject.sSystemRegistry.inputSystem.setUseOrientationForRoll(tiltControls);
-		BaseObject.sSystemRegistry.inputSystem.setOrientationSensitivityModifier((tiltSensitivity / 100.0f));
+	public void setControlOptions(boolean clickAttack, boolean tiltControls, int tiltSensitivity, int movementSensitivity) {
+		BaseObject.sSystemRegistry.inputGameInterface.setUseClickForAttack(clickAttack);
+		BaseObject.sSystemRegistry.inputGameInterface.setUseOrientationForMovement(tiltControls);
+		BaseObject.sSystemRegistry.inputGameInterface.setOrientationMovementSensitivity((tiltSensitivity / 100.0f));
+		BaseObject.sSystemRegistry.inputGameInterface.setMovementSensitivity((movementSensitivity / 100.0f));
+	}
+	
+	public void setSafeMode(boolean safe) {
+		mSurfaceView.setSafeMode(safe);
 	}
 	
 	public float getGameTime() {
@@ -507,10 +518,7 @@ public class Game extends AllocationGuard {
 
 	public void setKeyConfig(int leftKey, int rightKey, int jumpKey,
 			int attackKey) {
-		if (mGameThread != null) {
-			mGameThread.setKeyConfig(leftKey, rightKey, jumpKey, attackKey);
-		}
-		
+		BaseObject.sSystemRegistry.inputGameInterface.setKeys(leftKey, rightKey, jumpKey, attackKey);
 	}
 
 }

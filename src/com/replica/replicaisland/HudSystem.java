@@ -72,6 +72,12 @@ public class HudSystem extends BaseObject {
     private boolean mCoinDigitsChanged;
     private boolean mRubyDigitsChanged;
     
+    private int mFPS;
+    private Vector2 mFPSLocation;
+    private int[] mFPSDigits;
+    private boolean mFPSDigitsChanged;
+    private boolean mShowFPS;
+    
     private DrawableBitmap[] mDigitDrawables;
     private DrawableBitmap mXDrawable;
 	
@@ -82,9 +88,11 @@ public class HudSystem extends BaseObject {
         mStompButtonLocation = new Vector2();
         mCoinLocation = new Vector2();
         mRubyLocation = new Vector2();
+        mFPSLocation = new Vector2();
         mDigitDrawables = new DrawableBitmap[10];
         mCoinDigits = new int[MAX_DIGITS];
         mRubyDigits = new int[MAX_DIGITS];
+        mFPSDigits = new int[MAX_DIGITS];
         
         reset();
     }
@@ -114,6 +122,11 @@ public class HudSystem extends BaseObject {
         mRubyDigits[1] = -1;
         mCoinDigitsChanged = true;
         mRubyDigitsChanged = true;
+        mFPS = 0;
+        mFPSDigits[0] = 0;
+        mFPSDigits[1] = -1;
+        mFPSDigitsChanged = true;
+        mShowFPS = false;
         for (int x = 0; x < mDigitDrawables.length; x++) {
             mDigitDrawables[x] = null;
         }
@@ -182,6 +195,15 @@ public class HudSystem extends BaseObject {
 
         mCoinCount = newInventory.coinCount;
         mRubyCount = newInventory.rubyCount;
+    }
+    
+    public void setFPS(int fps) {
+    	mFPSDigitsChanged = (fps != mFPS);
+    	mFPS = fps;
+    }
+    
+    public void setShowFPS(boolean show) {
+    	mShowFPS = show;
     }
 
     @Override
@@ -292,7 +314,7 @@ public class HudSystem extends BaseObject {
 	            }
 	            final float offset = mCoinDrawable.getWidth() * 0.75f;
 	            mCoinLocation.x += offset;
-	            drawNumber(mCoinLocation, mCoinDigits);
+	            drawNumber(mCoinLocation, mCoinDigits, true);
 	            mCoinLocation.x -= offset;
 	        }
 	        
@@ -311,9 +333,19 @@ public class HudSystem extends BaseObject {
 	            }
 	            final float offset = mRubyDrawable.getWidth() * 0.75f;
 	            mRubyLocation.x += offset;
-	            drawNumber(mRubyLocation, mRubyDigits);    
+	            drawNumber(mRubyLocation, mRubyDigits, true);    
 	            mRubyLocation.x -= offset;
 	        }
+        }
+        
+        if (mShowFPS) {
+        	if (mFPSDigitsChanged) {
+            	int count = intToDigitArray(mFPS, mFPSDigits);
+            	mFPSDigitsChanged = false;
+                mFPSLocation.set(params.gameWidth - ((count + 1) * mDigitDrawables[0].getWidth()), 20.0f);
+
+            }
+            drawNumber(mFPSLocation, mFPSDigits, false);
         }
         
         if (mFading && factory != null) {
@@ -357,7 +389,7 @@ public class HudSystem extends BaseObject {
         }
     }
     
-    private void drawNumber(Vector2 location, int[] digits) {
+    private void drawNumber(Vector2 location, int[] digits, boolean drawX) {
         final RenderSystem render = sSystemRegistry.renderSystem;
         
         if (mDigitDrawables[0].getWidth() == 0) {
@@ -377,17 +409,19 @@ public class HudSystem extends BaseObject {
         final float characterWidth = mDigitDrawables[0].getWidth() / 2.0f;
         float offset = 0.0f;
         
-        if (mXDrawable != null) {
+        if (mXDrawable != null && drawX) {
             render.scheduleForDraw(mXDrawable, location, SortConstants.HUD, false); 
+            location.x += characterWidth;
+            offset += characterWidth;
          }
         
         for (int x = 0; x < digits.length && digits[x] != -1; x++) {
             int index = digits[x];
             DrawableBitmap digit = mDigitDrawables[index];
             if (digit != null) {
-            	location.x += characterWidth;
-                offset += characterWidth;
                 render.scheduleForDraw(digit, location, SortConstants.HUD, false);
+                location.x += characterWidth;
+                offset += characterWidth;
             }
         }
         

@@ -36,6 +36,14 @@ public class PhasedObjectManager extends ObjectManager {
         getPendingObjects().setComparator(sPhasedObjectComparator);
         mSearchDummy = new PhasedObject();
     }
+    
+    public PhasedObjectManager(int arraySize) {
+        super(arraySize);
+        mDirty = false;
+        getObjects().setComparator(sPhasedObjectComparator);
+        getPendingObjects().setComparator(sPhasedObjectComparator);
+        mSearchDummy = new PhasedObject();
+    }
 
     @Override
     public void commitUpdates() {

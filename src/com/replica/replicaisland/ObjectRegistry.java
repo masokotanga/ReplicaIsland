@@ -45,6 +45,7 @@ public class ObjectRegistry extends BaseObject {
     public HitPointPool hitPointPool;
     public HotSpotSystem hotSpotSystem;
     public HudSystem hudSystem;
+	public InputGameInterface inputGameInterface;
     public InputSystem inputSystem;
     public LevelBuilder levelBuilder;
     public LevelSystem levelSystem;

@@ -31,7 +31,7 @@ import com.replica.replicaisland.GameObject.Team;
  * a) generated from data at compile time, or b) described by data at runtime.
  */
 public class GameObjectFactory extends BaseObject {
-    private final static int MAX_GAME_OBJECTS = 256;
+    private final static int MAX_GAME_OBJECTS = 384;
     private final static ComponentPoolComparator sComponentPoolComparator = new ComponentPoolComparator();
     private FixedSizeArray<FixedSizeArray<BaseObject>> mStaticData;
     private FixedSizeArray<GameComponentPool> mComponentPools;
@@ -116,11 +116,16 @@ public class GameObjectFactory extends BaseObject {
         
         CAMERA_BIAS(56),
         
-        SMOKE_BIG(57),
-        SMOKE_SMALL(58),
+        FRAMERATE_WATCHER(57),
+        INFINITE_SPAWNER(58),
         
-        CRUSH_FLASH(59),
-        FLASH(60),
+        SMOKE_BIG(59),
+        SMOKE_SMALL(60),
+        
+        CRUSH_FLASH(61),
+        FLASH(62),
+        
+        
         
         // Projectiles
         ENERGY_BALL(68),
@@ -206,42 +211,43 @@ public class GameObjectFactory extends BaseObject {
         ComponentClass[] componentTypes = {
                 new ComponentClass(AnimationComponent.class, 1),
                 new ComponentClass(AttackAtDistanceComponent.class, 16),
-                new ComponentClass(BackgroundCollisionComponent.class, 128),
+                new ComponentClass(BackgroundCollisionComponent.class, 192),
                 new ComponentClass(ButtonAnimationComponent.class, 32),
                 new ComponentClass(CameraBiasComponent.class, 8),
-                new ComponentClass(ChangeComponentsComponent.class, 128),
+                new ComponentClass(ChangeComponentsComponent.class, 256),
                 new ComponentClass(DoorAnimationComponent.class, 256),  //!
                 new ComponentClass(DynamicCollisionComponent.class, 256),
-                new ComponentClass(EnemyAnimationComponent.class, 128),
+                new ComponentClass(EnemyAnimationComponent.class, 256),
                 new ComponentClass(FadeDrawableComponent.class, 32),
                 new ComponentClass(FixedAnimationComponent.class, 8),
+                new ComponentClass(FrameRateWatcherComponent.class, 1),
                 new ComponentClass(GenericAnimationComponent.class, 32),
-                new ComponentClass(GhostComponent.class, 64),
+                new ComponentClass(GhostComponent.class, 256),
                 new ComponentClass(GravityComponent.class, 128),
                 new ComponentClass(HitPlayerComponent.class, 256),
                 new ComponentClass(HitReactionComponent.class, 256),
                 new ComponentClass(InventoryComponent.class, 128),
                 new ComponentClass(LauncherComponent.class, 16),
                 new ComponentClass(LaunchProjectileComponent.class, 128),
-                new ComponentClass(LifetimeComponent.class, 256),
+                new ComponentClass(LifetimeComponent.class, 384),
                 new ComponentClass(MotionBlurComponent.class, 1),
                 new ComponentClass(MovementComponent.class, 128),
                 new ComponentClass(NPCAnimationComponent.class, 8),
                 new ComponentClass(NPCComponent.class, 8),
                 new ComponentClass(OrbitalMagnetComponent.class, 1),
-                new ComponentClass(PatrolComponent.class, 128),
+                new ComponentClass(PatrolComponent.class, 256),
                 new ComponentClass(PhysicsComponent.class, 8),
                 new ComponentClass(PlayerComponent.class, 1),
                 new ComponentClass(PlaySingleSoundComponent.class, 32),
                 new ComponentClass(PopOutComponent.class, 32),
-                new ComponentClass(RenderComponent.class, 256),
+                new ComponentClass(RenderComponent.class, 384),
                 new ComponentClass(ScrollerComponent.class, 8),
                 new ComponentClass(SelectDialogComponent.class, 8),
                 new ComponentClass(SimpleCollisionComponent.class, 32),
-                new ComponentClass(SimplePhysicsComponent.class, 128),
+                new ComponentClass(SimplePhysicsComponent.class, 256),
                 new ComponentClass(SleeperComponent.class, 32),
                 new ComponentClass(SolidSurfaceComponent.class, 16),
-                new ComponentClass(SpriteComponent.class, 256),
+                new ComponentClass(SpriteComponent.class, 384),
                 new ComponentClass(TheSourceComponent.class, 1),
 
                 
@@ -291,6 +297,16 @@ public class GameObjectFactory extends BaseObject {
             component.shared = false;
             pool.release(component);
         }
+    }
+    
+    protected boolean componentAvailable(Class<?> componentType, int count) {
+    	boolean canAllocate = false;
+        GameComponentPool pool = getComponentPool(componentType);
+        assert pool != null;
+        if (pool != null) {
+        	canAllocate = pool.getAllocatedCount() + count < pool.getSize();
+        }
+        return canAllocate;
     }
     
     public void preloadEffects() {
@@ -491,6 +507,12 @@ public class GameObjectFactory extends BaseObject {
             case CAMERA_BIAS:
             	newObject = spawnCameraBias(x, y);
             	break;
+            case FRAMERATE_WATCHER:
+            	newObject = spawnFrameRateWatcher(x, y);
+            	break;
+            case INFINITE_SPAWNER:
+            	newObject = spawnObjectInfiniteSpawner(x, y);
+            	break;
             case SMOKE_BIG:
                 newObject = spawnEffectSmokeBig(x, y);
                 break;
@@ -503,6 +525,7 @@ public class GameObjectFactory extends BaseObject {
             case FLASH:
                 newObject = spawnEffectFlash(x, y);
                 break;
+            
             case ENERGY_BALL:
                 newObject = spawnEnergyBall(x, y, horzFlip);
                 break;
@@ -3813,7 +3836,7 @@ public class GameObjectFactory extends BaseObject {
 
             GhostComponent ghost = (GhostComponent)allocateComponent(GhostComponent.class);
             ghost.setMovementSpeed(2000.0f);
-            ghost.setAcceleration(300.0f);
+            ghost.setAcceleration(700.0f);	//300
             ghost.setUseOrientationSensor(true);
             ghost.setKillOnRelease(true);
             
@@ -5095,7 +5118,19 @@ public class GameObjectFactory extends BaseObject {
         return object;
     }
     
-public GameObject spawnObjectBreakableBlock(float positionX, float positionY) {
+    public GameObject spawnObjectInfiniteSpawner(float positionX, float positionY) {
+    	GameObject object = spawnObjectBrobotSpawner(positionX, positionY, false);
+    	object.facingDirection.y = -1; //vertical flip
+    	LaunchProjectileComponent gun = object.findByClass(LaunchProjectileComponent.class);
+    	if (gun != null) {
+    		gun.enableProjectileTracking(68);
+    		gun.setDelayBetweenShots(0.5f);
+    	}
+    	
+    	return object;
+    }
+    
+    public GameObject spawnObjectBreakableBlock(float positionX, float positionY) {
         
         TextureLibrary textureLibrary = sSystemRegistry.shortTermTextureLibrary;
 
@@ -5913,182 +5948,190 @@ public GameObject spawnObjectBreakableBlock(float positionX, float positionY) {
     public GameObject spawnEffectSmokeBig(float positionX, float positionY) {
         TextureLibrary textureLibrary = sSystemRegistry.longTermTextureLibrary;
 
-        GameObject object = mGameObjectPool.allocate();
-        object.getPosition().set(positionX, positionY);
-        object.activationRadius = mTightActivationRadius;
-        object.width = 32;
-        object.height = 32;
+        GameObject object = null;
+        // This is just an effect, so we can live without it if our pools are exhausted.
+        if (componentAvailable(RenderComponent.class, 1)) { 
+        	object = mGameObjectPool.allocate();
+	        
+	        object.getPosition().set(positionX, positionY);
+	        object.activationRadius = mTightActivationRadius;
+	        object.width = 32;
+	        object.height = 32;
+	        
+	        FixedSizeArray<BaseObject> staticData = getStaticData(GameObjectType.SMOKE_BIG);
+	        if (staticData == null) {
+	            final int staticObjectCount = 6;
+	            staticData = new FixedSizeArray<BaseObject>(staticObjectCount);
+	            
+	            GameComponent movement = allocateComponent(MovementComponent.class);
+	            
+	             
+	            AnimationFrame frame2 = new AnimationFrame(
+	                    textureLibrary.getTextureByResource(R.drawable.effect_smoke_big02), 
+	                    Utils.framesToTime(24, 1), null, null);
+	            
+	            AnimationFrame frame3 = new AnimationFrame(
+	                    textureLibrary.getTextureByResource(R.drawable.effect_smoke_big03), 
+	                    Utils.framesToTime(24, 1), null, null);
+	            
+	            AnimationFrame frame4 = new AnimationFrame(
+	                    textureLibrary.getTextureByResource(R.drawable.effect_smoke_big04), 
+	                    Utils.framesToTime(24, 1), null, null);
+	            
+	            AnimationFrame frame5 = new AnimationFrame(
+	                    textureLibrary.getTextureByResource(R.drawable.effect_smoke_big05), 
+	                    Utils.framesToTime(24, 1), null, null);
+	            
+	            SpriteAnimation idle = new SpriteAnimation(0, 5);
+	            idle.addFrame(new AnimationFrame(
+	                    textureLibrary.getTextureByResource(R.drawable.effect_smoke_big01), 
+	                    Utils.framesToTime(24, 10), null, null));
+	            idle.addFrame(frame2);
+	            idle.addFrame(frame3);
+	            idle.addFrame(frame4);
+	            idle.addFrame(frame5);
+	            
+	            SpriteAnimation idle2 = new SpriteAnimation(1, 5);
+	            idle2.addFrame(new AnimationFrame(
+	                    textureLibrary.getTextureByResource(R.drawable.effect_smoke_big01), 
+	                    Utils.framesToTime(24, 13), null, null));
+	            idle2.addFrame(frame2);
+	            idle2.addFrame(frame3);
+	            idle2.addFrame(frame4);
+	            idle2.addFrame(frame5);
+	            
+	            SpriteAnimation idle3 = new SpriteAnimation(2, 5);
+	            idle3.addFrame(new AnimationFrame(
+	                    textureLibrary.getTextureByResource(R.drawable.effect_smoke_big01), 
+	                    Utils.framesToTime(24, 8), null, null));
+	            idle3.addFrame(frame2);
+	            idle3.addFrame(frame3);
+	            idle3.addFrame(frame4);
+	            idle3.addFrame(frame5);
+	
+	            SpriteAnimation idle4 = new SpriteAnimation(3, 5);
+	            idle4.addFrame(new AnimationFrame(
+	                    textureLibrary.getTextureByResource(R.drawable.effect_smoke_big01), 
+	                    Utils.framesToTime(24, 5), null, null));
+	            idle4.addFrame(frame2);
+	            idle4.addFrame(frame3);
+	            idle4.addFrame(frame4);
+	            idle4.addFrame(frame5);
+	            
+	            SpriteAnimation idle5 = new SpriteAnimation(4, 5);
+	            idle5.addFrame(new AnimationFrame(
+	                    textureLibrary.getTextureByResource(R.drawable.effect_smoke_big01), 
+	                    Utils.framesToTime(24, 15), null, null));
+	            idle5.addFrame(frame2);
+	            idle5.addFrame(frame3);
+	            idle5.addFrame(frame4);
+	            idle5.addFrame(frame5);
+	            
+	            staticData.add(idle);
+	            staticData.add(idle2);
+	            staticData.add(idle3);
+	            staticData.add(idle4);
+	            staticData.add(idle5);
+	            staticData.add(movement);
+	            setStaticData(GameObjectType.SMOKE_BIG, staticData);
+	        }
+	        
+	        RenderComponent render = (RenderComponent)allocateComponent(RenderComponent.class);
+	        render.setPriority(SortConstants.EFFECT);
+	
+	        SpriteComponent sprite = (SpriteComponent)allocateComponent(SpriteComponent.class);
+	        sprite.setSize((int)object.width, (int)object.height);
+	        sprite.setRenderComponent(render);
+	     
+	        LifetimeComponent lifetime = (LifetimeComponent)allocateComponent(LifetimeComponent.class);
+	        lifetime.setDieWhenInvisible(true);
+	                      
+	        object.destroyOnDeactivation = true;
+	        
+	        object.add(lifetime);
+	        object.add(render);
+	        object.add(sprite);
+	          
+	        addStaticData(GameObjectType.SMOKE_BIG, object, sprite);
+	        
+	        final int animIndex = (int)(Math.random() * sprite.getAnimationCount());
+	        final SpriteAnimation idle = sprite.findAnimation(animIndex);
+	        if (idle != null) {
+	            lifetime.setTimeUntilDeath(idle.getLength());
+	            sprite.playAnimation(animIndex);
+	        }
+	        
         
-        FixedSizeArray<BaseObject> staticData = getStaticData(GameObjectType.SMOKE_BIG);
-        if (staticData == null) {
-            final int staticObjectCount = 6;
-            staticData = new FixedSizeArray<BaseObject>(staticObjectCount);
-            
-            GameComponent movement = allocateComponent(MovementComponent.class);
-            
-             
-            AnimationFrame frame2 = new AnimationFrame(
-                    textureLibrary.getTextureByResource(R.drawable.effect_smoke_big02), 
-                    Utils.framesToTime(24, 1), null, null);
-            
-            AnimationFrame frame3 = new AnimationFrame(
-                    textureLibrary.getTextureByResource(R.drawable.effect_smoke_big03), 
-                    Utils.framesToTime(24, 1), null, null);
-            
-            AnimationFrame frame4 = new AnimationFrame(
-                    textureLibrary.getTextureByResource(R.drawable.effect_smoke_big04), 
-                    Utils.framesToTime(24, 1), null, null);
-            
-            AnimationFrame frame5 = new AnimationFrame(
-                    textureLibrary.getTextureByResource(R.drawable.effect_smoke_big05), 
-                    Utils.framesToTime(24, 1), null, null);
-            
-            SpriteAnimation idle = new SpriteAnimation(0, 5);
-            idle.addFrame(new AnimationFrame(
-                    textureLibrary.getTextureByResource(R.drawable.effect_smoke_big01), 
-                    Utils.framesToTime(24, 10), null, null));
-            idle.addFrame(frame2);
-            idle.addFrame(frame3);
-            idle.addFrame(frame4);
-            idle.addFrame(frame5);
-            
-            SpriteAnimation idle2 = new SpriteAnimation(1, 5);
-            idle2.addFrame(new AnimationFrame(
-                    textureLibrary.getTextureByResource(R.drawable.effect_smoke_big01), 
-                    Utils.framesToTime(24, 13), null, null));
-            idle2.addFrame(frame2);
-            idle2.addFrame(frame3);
-            idle2.addFrame(frame4);
-            idle2.addFrame(frame5);
-            
-            SpriteAnimation idle3 = new SpriteAnimation(2, 5);
-            idle3.addFrame(new AnimationFrame(
-                    textureLibrary.getTextureByResource(R.drawable.effect_smoke_big01), 
-                    Utils.framesToTime(24, 8), null, null));
-            idle3.addFrame(frame2);
-            idle3.addFrame(frame3);
-            idle3.addFrame(frame4);
-            idle3.addFrame(frame5);
-
-            SpriteAnimation idle4 = new SpriteAnimation(3, 5);
-            idle4.addFrame(new AnimationFrame(
-                    textureLibrary.getTextureByResource(R.drawable.effect_smoke_big01), 
-                    Utils.framesToTime(24, 5), null, null));
-            idle4.addFrame(frame2);
-            idle4.addFrame(frame3);
-            idle4.addFrame(frame4);
-            idle4.addFrame(frame5);
-            
-            SpriteAnimation idle5 = new SpriteAnimation(4, 5);
-            idle5.addFrame(new AnimationFrame(
-                    textureLibrary.getTextureByResource(R.drawable.effect_smoke_big01), 
-                    Utils.framesToTime(24, 15), null, null));
-            idle5.addFrame(frame2);
-            idle5.addFrame(frame3);
-            idle5.addFrame(frame4);
-            idle5.addFrame(frame5);
-            
-            staticData.add(idle);
-            staticData.add(idle2);
-            staticData.add(idle3);
-            staticData.add(idle4);
-            staticData.add(idle5);
-            staticData.add(movement);
-            setStaticData(GameObjectType.SMOKE_BIG, staticData);
         }
-        
-        RenderComponent render = (RenderComponent)allocateComponent(RenderComponent.class);
-        render.setPriority(SortConstants.EFFECT);
-
-        SpriteComponent sprite = (SpriteComponent)allocateComponent(SpriteComponent.class);
-        sprite.setSize((int)object.width, (int)object.height);
-        sprite.setRenderComponent(render);
-     
-        LifetimeComponent lifetime = (LifetimeComponent)allocateComponent(LifetimeComponent.class);
-        lifetime.setDieWhenInvisible(true);
-                      
-        object.destroyOnDeactivation = true;
-        
-        object.add(lifetime);
-        object.add(render);
-        object.add(sprite);
-          
-        addStaticData(GameObjectType.SMOKE_BIG, object, sprite);
-        
-        final int animIndex = (int)(Math.random() * sprite.getAnimationCount());
-        final SpriteAnimation idle = sprite.findAnimation(animIndex);
-        if (idle != null) {
-            lifetime.setTimeUntilDeath(idle.getLength());
-            sprite.playAnimation(animIndex);
-        }
-        
-        
-
         return object;
     }
     
     public GameObject spawnEffectSmokeSmall(float positionX, float positionY) {
         TextureLibrary textureLibrary = sSystemRegistry.longTermTextureLibrary;
 
-        GameObject object = mGameObjectPool.allocate();
-        object.getPosition().set(positionX, positionY);
-        object.activationRadius = mAlwaysActive;
-        object.width = 16;
-        object.height = 16;
-        
-        FixedSizeArray<BaseObject> staticData = getStaticData(GameObjectType.SMOKE_SMALL);
-        if (staticData == null) {
-            final int staticObjectCount = 2;
-            staticData = new FixedSizeArray<BaseObject>(staticObjectCount);
-            
-            GameComponent movement = allocateComponent(MovementComponent.class);
-
-            SpriteAnimation idle = new SpriteAnimation(0, 5);
-            idle.addFrame(new AnimationFrame(
-                    textureLibrary.getTextureByResource(R.drawable.effect_smoke_small01), 
-                    Utils.framesToTime(24, 10), null, null));
-            idle.addFrame(new AnimationFrame(
-                    textureLibrary.getTextureByResource(R.drawable.effect_smoke_small02), 
-                    Utils.framesToTime(24, 1), null, null));
-            idle.addFrame(new AnimationFrame(
-                    textureLibrary.getTextureByResource(R.drawable.effect_smoke_small03), 
-                    Utils.framesToTime(24, 1), null, null));
-            idle.addFrame(new AnimationFrame(
-                    textureLibrary.getTextureByResource(R.drawable.effect_smoke_small04), 
-                    Utils.framesToTime(24, 1), null, null));
-            idle.addFrame(new AnimationFrame(
-                    textureLibrary.getTextureByResource(R.drawable.effect_smoke_small05), 
-                    Utils.framesToTime(24, 1), null, null));
-            
-            staticData.add(idle);
-            staticData.add(movement);
-            setStaticData(GameObjectType.SMOKE_SMALL, staticData);
+        GameObject object = null;
+        // This is just an effect, so we can live without it if our pools are exhausted.
+        if (componentAvailable(RenderComponent.class, 1)) {
+	        object = mGameObjectPool.allocate();
+	        object.getPosition().set(positionX, positionY);
+	        object.activationRadius = mAlwaysActive;
+	        object.width = 16;
+	        object.height = 16;
+	        
+	        FixedSizeArray<BaseObject> staticData = getStaticData(GameObjectType.SMOKE_SMALL);
+	        if (staticData == null) {
+	            final int staticObjectCount = 2;
+	            staticData = new FixedSizeArray<BaseObject>(staticObjectCount);
+	            
+	            GameComponent movement = allocateComponent(MovementComponent.class);
+	
+	            SpriteAnimation idle = new SpriteAnimation(0, 5);
+	            idle.addFrame(new AnimationFrame(
+	                    textureLibrary.getTextureByResource(R.drawable.effect_smoke_small01), 
+	                    Utils.framesToTime(24, 10), null, null));
+	            idle.addFrame(new AnimationFrame(
+	                    textureLibrary.getTextureByResource(R.drawable.effect_smoke_small02), 
+	                    Utils.framesToTime(24, 1), null, null));
+	            idle.addFrame(new AnimationFrame(
+	                    textureLibrary.getTextureByResource(R.drawable.effect_smoke_small03), 
+	                    Utils.framesToTime(24, 1), null, null));
+	            idle.addFrame(new AnimationFrame(
+	                    textureLibrary.getTextureByResource(R.drawable.effect_smoke_small04), 
+	                    Utils.framesToTime(24, 1), null, null));
+	            idle.addFrame(new AnimationFrame(
+	                    textureLibrary.getTextureByResource(R.drawable.effect_smoke_small05), 
+	                    Utils.framesToTime(24, 1), null, null));
+	            
+	            staticData.add(idle);
+	            staticData.add(movement);
+	            setStaticData(GameObjectType.SMOKE_SMALL, staticData);
+	        }
+	        
+	        RenderComponent render = (RenderComponent)allocateComponent(RenderComponent.class);
+	        render.setPriority(SortConstants.EFFECT);
+	
+	        SpriteComponent sprite = (SpriteComponent)allocateComponent(SpriteComponent.class);
+	        sprite.setSize((int)object.width, (int)object.height);
+	        sprite.setRenderComponent(render);
+	     
+	        LifetimeComponent lifetime = (LifetimeComponent)allocateComponent(LifetimeComponent.class);
+	        lifetime.setDieWhenInvisible(true);
+	                      
+	        object.destroyOnDeactivation = true;
+	        
+	        object.add(lifetime);
+	        object.add(render);
+	        object.add(sprite);
+	          
+	        addStaticData(GameObjectType.SMOKE_SMALL, object, sprite);
+	        
+	        final SpriteAnimation idle = sprite.findAnimation(0);
+	        if (idle != null) {
+	            lifetime.setTimeUntilDeath(idle.getLength());
+	        }
+	        
+	        sprite.playAnimation(0);
         }
-        
-        RenderComponent render = (RenderComponent)allocateComponent(RenderComponent.class);
-        render.setPriority(SortConstants.EFFECT);
-
-        SpriteComponent sprite = (SpriteComponent)allocateComponent(SpriteComponent.class);
-        sprite.setSize((int)object.width, (int)object.height);
-        sprite.setRenderComponent(render);
-     
-        LifetimeComponent lifetime = (LifetimeComponent)allocateComponent(LifetimeComponent.class);
-        lifetime.setDieWhenInvisible(true);
-                      
-        object.destroyOnDeactivation = true;
-        
-        object.add(lifetime);
-        object.add(render);
-        object.add(sprite);
-          
-        addStaticData(GameObjectType.SMOKE_SMALL, object, sprite);
-        
-        final SpriteAnimation idle = sprite.findAnimation(0);
-        if (idle != null) {
-            lifetime.setTimeUntilDeath(idle.getLength());
-        }
-        
-        sprite.playAnimation(0);
 
         return object;
     }
@@ -6096,153 +6139,192 @@ public GameObject spawnObjectBreakableBlock(float positionX, float positionY) {
     public GameObject spawnEffectCrushFlash(float positionX, float positionY) {
         TextureLibrary textureLibrary = sSystemRegistry.longTermTextureLibrary;
 
-        GameObject object = mGameObjectPool.allocate();
-        object.getPosition().set(positionX, positionY);
-        object.activationRadius = mAlwaysActive;
-        object.width = 64;
-        object.height = 64;
-        
-        FixedSizeArray<BaseObject> staticData = getStaticData(GameObjectType.CRUSH_FLASH);
-        if (staticData == null) {
-            final int staticObjectCount = 2;
-            staticData = new FixedSizeArray<BaseObject>(staticObjectCount);
-            
-            SpriteAnimation back = new SpriteAnimation(0, 3);
-            back.addFrame(new AnimationFrame(
-                    textureLibrary.getTextureByResource(R.drawable.effect_crush_back01), 
-                    Utils.framesToTime(24, 1), null, null));
-            back.addFrame(new AnimationFrame(
-                    textureLibrary.getTextureByResource(R.drawable.effect_crush_back02), 
-                    Utils.framesToTime(24, 1), null, null));
-            back.addFrame(new AnimationFrame(
-                    textureLibrary.getTextureByResource(R.drawable.effect_crush_back03), 
-                    Utils.framesToTime(24, 1), null, null));
-            
-            SpriteAnimation front = new SpriteAnimation(1, 7);
-            front.addFrame(new AnimationFrame(
-                    textureLibrary.getTextureByResource(R.drawable.effect_crush_front01), 
-                    Utils.framesToTime(24, 1), null, null));
-            front.addFrame(new AnimationFrame(
-                    textureLibrary.getTextureByResource(R.drawable.effect_crush_front02), 
-                    Utils.framesToTime(24, 1), null, null));
-            front.addFrame(new AnimationFrame(
-                    textureLibrary.getTextureByResource(R.drawable.effect_crush_front03), 
-                    Utils.framesToTime(24, 1), null, null));
-            front.addFrame(new AnimationFrame(
-                    textureLibrary.getTextureByResource(R.drawable.effect_crush_front04), 
-                    Utils.framesToTime(24, 1), null, null));
-            front.addFrame(new AnimationFrame(
-                    textureLibrary.getTextureByResource(R.drawable.effect_crush_front05), 
-                    Utils.framesToTime(24, 1), null, null));
-            front.addFrame(new AnimationFrame(
-                    textureLibrary.getTextureByResource(R.drawable.effect_crush_front06), 
-                    Utils.framesToTime(24, 1), null, null));
-            front.addFrame(new AnimationFrame(
-                    textureLibrary.getTextureByResource(R.drawable.effect_crush_front07), 
-                    Utils.framesToTime(24, 1), null, null));
-           
-            
-            staticData.add(back);
-            staticData.add(front);
-            setStaticData(GameObjectType.CRUSH_FLASH, staticData);
+        GameObject object = null;
+        // This is just an effect, so we can live without it if our pools are exhausted.
+        if (componentAvailable(RenderComponent.class, 1)) {
+	        object = mGameObjectPool.allocate();
+	        object.getPosition().set(positionX, positionY);
+	        object.activationRadius = mAlwaysActive;
+	        object.width = 64;
+	        object.height = 64;
+	        
+	        FixedSizeArray<BaseObject> staticData = getStaticData(GameObjectType.CRUSH_FLASH);
+	        if (staticData == null) {
+	            final int staticObjectCount = 2;
+	            staticData = new FixedSizeArray<BaseObject>(staticObjectCount);
+	            
+	            SpriteAnimation back = new SpriteAnimation(0, 3);
+	            back.addFrame(new AnimationFrame(
+	                    textureLibrary.getTextureByResource(R.drawable.effect_crush_back01), 
+	                    Utils.framesToTime(24, 1), null, null));
+	            back.addFrame(new AnimationFrame(
+	                    textureLibrary.getTextureByResource(R.drawable.effect_crush_back02), 
+	                    Utils.framesToTime(24, 1), null, null));
+	            back.addFrame(new AnimationFrame(
+	                    textureLibrary.getTextureByResource(R.drawable.effect_crush_back03), 
+	                    Utils.framesToTime(24, 1), null, null));
+	            
+	            SpriteAnimation front = new SpriteAnimation(1, 7);
+	            front.addFrame(new AnimationFrame(
+	                    textureLibrary.getTextureByResource(R.drawable.effect_crush_front01), 
+	                    Utils.framesToTime(24, 1), null, null));
+	            front.addFrame(new AnimationFrame(
+	                    textureLibrary.getTextureByResource(R.drawable.effect_crush_front02), 
+	                    Utils.framesToTime(24, 1), null, null));
+	            front.addFrame(new AnimationFrame(
+	                    textureLibrary.getTextureByResource(R.drawable.effect_crush_front03), 
+	                    Utils.framesToTime(24, 1), null, null));
+	            front.addFrame(new AnimationFrame(
+	                    textureLibrary.getTextureByResource(R.drawable.effect_crush_front04), 
+	                    Utils.framesToTime(24, 1), null, null));
+	            front.addFrame(new AnimationFrame(
+	                    textureLibrary.getTextureByResource(R.drawable.effect_crush_front05), 
+	                    Utils.framesToTime(24, 1), null, null));
+	            front.addFrame(new AnimationFrame(
+	                    textureLibrary.getTextureByResource(R.drawable.effect_crush_front06), 
+	                    Utils.framesToTime(24, 1), null, null));
+	            front.addFrame(new AnimationFrame(
+	                    textureLibrary.getTextureByResource(R.drawable.effect_crush_front07), 
+	                    Utils.framesToTime(24, 1), null, null));
+	           
+	            
+	            staticData.add(back);
+	            staticData.add(front);
+	            setStaticData(GameObjectType.CRUSH_FLASH, staticData);
+	        }
+	        
+	        
+	        RenderComponent backRender = (RenderComponent)allocateComponent(RenderComponent.class);
+	        backRender.setPriority(SortConstants.EFFECT);
+	        
+	        SpriteComponent backSprite = (SpriteComponent)allocateComponent(SpriteComponent.class);
+	        backSprite.setSize((int)object.width, (int)object.height);
+	        backSprite.setRenderComponent(backRender);
+	        
+	        RenderComponent foreRender = (RenderComponent)allocateComponent(RenderComponent.class);
+	        foreRender.setPriority(SortConstants.FOREGROUND_EFFECT);
+	        
+	        SpriteComponent foreSprite = (SpriteComponent)allocateComponent(SpriteComponent.class);
+	        foreSprite.setSize((int)object.width, (int)object.height);
+	        foreSprite.setRenderComponent(foreRender);
+	
+	        LifetimeComponent lifetime = (LifetimeComponent)allocateComponent(LifetimeComponent.class);
+	
+	    
+	        object.add(lifetime);
+	        object.add(backRender);
+	        object.add(foreRender);
+	        object.add(foreSprite);
+	        object.add(backSprite);
+	          
+	        addStaticData(GameObjectType.CRUSH_FLASH, object, backSprite);
+	        addStaticData(GameObjectType.CRUSH_FLASH, null, foreSprite);
+	
+	        
+	        final SpriteAnimation idle = foreSprite.findAnimation(1);
+	        if (idle != null) {
+	            lifetime.setTimeUntilDeath(idle.getLength());
+	        }
+	        
+	        backSprite.playAnimation(0);
+	        foreSprite.playAnimation(1);
         }
         
-        
-        RenderComponent backRender = (RenderComponent)allocateComponent(RenderComponent.class);
-        backRender.setPriority(SortConstants.EFFECT);
-        
-        SpriteComponent backSprite = (SpriteComponent)allocateComponent(SpriteComponent.class);
-        backSprite.setSize((int)object.width, (int)object.height);
-        backSprite.setRenderComponent(backRender);
-        
-        RenderComponent foreRender = (RenderComponent)allocateComponent(RenderComponent.class);
-        foreRender.setPriority(SortConstants.FOREGROUND_EFFECT);
-        
-        SpriteComponent foreSprite = (SpriteComponent)allocateComponent(SpriteComponent.class);
-        foreSprite.setSize((int)object.width, (int)object.height);
-        foreSprite.setRenderComponent(foreRender);
-
-        LifetimeComponent lifetime = (LifetimeComponent)allocateComponent(LifetimeComponent.class);
-
-    
-        object.add(lifetime);
-        object.add(backRender);
-        object.add(foreRender);
-        object.add(foreSprite);
-        object.add(backSprite);
-          
-        addStaticData(GameObjectType.CRUSH_FLASH, object, backSprite);
-        addStaticData(GameObjectType.CRUSH_FLASH, null, foreSprite);
-
-        
-        final SpriteAnimation idle = foreSprite.findAnimation(1);
-        if (idle != null) {
-            lifetime.setTimeUntilDeath(idle.getLength());
-        }
-        
-        backSprite.playAnimation(0);
-        foreSprite.playAnimation(1);
-
         return object;
     }
     
     public GameObject spawnEffectFlash(float positionX, float positionY) {
         TextureLibrary textureLibrary = sSystemRegistry.longTermTextureLibrary;
-
-        GameObject object = mGameObjectPool.allocate();
-        object.getPosition().set(positionX, positionY);
-        object.activationRadius = mAlwaysActive;
-        object.width = 64;
-        object.height = 64;
-        
-        FixedSizeArray<BaseObject> staticData = getStaticData(GameObjectType.FLASH);
-        if (staticData == null) {
-            final int staticObjectCount = 1;
-            staticData = new FixedSizeArray<BaseObject>(staticObjectCount);
-            
-            SpriteAnimation back = new SpriteAnimation(0, 3);
-            back.addFrame(new AnimationFrame(
-                    textureLibrary.getTextureByResource(R.drawable.effect_crush_back01), 
-                    Utils.framesToTime(24, 1), null, null));
-            back.addFrame(new AnimationFrame(
-                    textureLibrary.getTextureByResource(R.drawable.effect_crush_back02), 
-                    Utils.framesToTime(24, 1), null, null));
-            back.addFrame(new AnimationFrame(
-                    textureLibrary.getTextureByResource(R.drawable.effect_crush_back03), 
-                    Utils.framesToTime(24, 1), null, null));
-            
-         
-            staticData.add(back);
-            setStaticData(GameObjectType.FLASH, staticData);
+        GameObject object = null;
+        // This is just an effect, so we can live without it if our pools are exhausted.
+        if (componentAvailable(RenderComponent.class, 1)) {
+	        object = mGameObjectPool.allocate();
+	        object.getPosition().set(positionX, positionY);
+	        object.activationRadius = mAlwaysActive;
+	        object.width = 64;
+	        object.height = 64;
+	        
+	        FixedSizeArray<BaseObject> staticData = getStaticData(GameObjectType.FLASH);
+	        if (staticData == null) {
+	            final int staticObjectCount = 1;
+	            staticData = new FixedSizeArray<BaseObject>(staticObjectCount);
+	            
+	            SpriteAnimation back = new SpriteAnimation(0, 3);
+	            back.addFrame(new AnimationFrame(
+	                    textureLibrary.getTextureByResource(R.drawable.effect_crush_back01), 
+	                    Utils.framesToTime(24, 1), null, null));
+	            back.addFrame(new AnimationFrame(
+	                    textureLibrary.getTextureByResource(R.drawable.effect_crush_back02), 
+	                    Utils.framesToTime(24, 1), null, null));
+	            back.addFrame(new AnimationFrame(
+	                    textureLibrary.getTextureByResource(R.drawable.effect_crush_back03), 
+	                    Utils.framesToTime(24, 1), null, null));
+	            
+	         
+	            staticData.add(back);
+	            setStaticData(GameObjectType.FLASH, staticData);
+	        }
+	        
+	        
+	        RenderComponent backRender = (RenderComponent)allocateComponent(RenderComponent.class);
+	        backRender.setPriority(SortConstants.EFFECT);
+	        
+	        SpriteComponent backSprite = (SpriteComponent)allocateComponent(SpriteComponent.class);
+	        backSprite.setSize((int)object.width, (int)object.height);
+	        backSprite.setRenderComponent(backRender);
+	        
+	   
+	
+	        LifetimeComponent lifetime = (LifetimeComponent)allocateComponent(LifetimeComponent.class);
+	
+	    
+	        object.add(lifetime);
+	        object.add(backRender);
+	        object.add(backSprite);
+	          
+	        addStaticData(GameObjectType.FLASH, object, backSprite);
+	
+	        
+	        final SpriteAnimation idle = backSprite.findAnimation(0);
+	        if (idle != null) {
+	            lifetime.setTimeUntilDeath(idle.getLength());
+	        }
+	        
+	        backSprite.playAnimation(0);
         }
         
-        
-        RenderComponent backRender = (RenderComponent)allocateComponent(RenderComponent.class);
-        backRender.setPriority(SortConstants.EFFECT);
-        
-        SpriteComponent backSprite = (SpriteComponent)allocateComponent(SpriteComponent.class);
-        backSprite.setSize((int)object.width, (int)object.height);
-        backSprite.setRenderComponent(backRender);
-        
-   
-
-        LifetimeComponent lifetime = (LifetimeComponent)allocateComponent(LifetimeComponent.class);
-
+        return object;
+    }
     
-        object.add(lifetime);
-        object.add(backRender);
-        object.add(backSprite);
+
+    public GameObject spawnFrameRateWatcher(float positionX, float positionY) {
+        TextureLibrary textureLibrary = sSystemRegistry.shortTermTextureLibrary;
+        ContextParameters params = sSystemRegistry.contextParameters;
+        
+        GameObject object = mGameObjectPool.allocate();
+        object.getPosition().set(250, 0);	// HACK!
+        object.activationRadius = mAlwaysActive;
+        object.width = params.gameWidth;
+        object.height = params.gameHeight;
+        
+        DrawableBitmap indicator = new DrawableBitmap(
+                textureLibrary.allocateTexture(R.drawable.framerate_warning), 
+                (int)object.width, 
+                (int)object.height);
+        
+        indicator.setCrop(0, 8, 8, 8); // hack!  this shouldn't be hard-coded.
+        
+        RenderComponent render = (RenderComponent)allocateComponent(RenderComponent.class);
+        render.setPriority(SortConstants.OVERLAY);
+        render.setCameraRelative(false);
+        
+        FrameRateWatcherComponent watcher = (FrameRateWatcherComponent)allocateComponent(FrameRateWatcherComponent.class);
+        watcher.setup(render, indicator);
+        
+        object.add(render);
+        object.add(watcher);
+        
           
-        addStaticData(GameObjectType.FLASH, object, backSprite);
-
-        
-        final SpriteAnimation idle = backSprite.findAnimation(0);
-        if (idle != null) {
-            lifetime.setTimeUntilDeath(idle.getLength());
-        }
-        
-        backSprite.playAnimation(0);
-
         return object;
     }
     
@@ -6336,46 +6418,49 @@ public GameObject spawnObjectBreakableBlock(float positionX, float positionY) {
     
     public GameObject spawnSmokePoof(float positionX, float positionY) {
         
-        GameObject object = mGameObjectPool.allocate();
-        object.getPosition().set(positionX, positionY);
-        object.activationRadius = mTightActivationRadius;
-        object.width = 1;
-        object.height = 1;
-        
-        LifetimeComponent lifetime = (LifetimeComponent)allocateComponent(LifetimeComponent.class);
-        lifetime.setTimeUntilDeath(0.5f);
-        
-        LaunchProjectileComponent smokeGun 
-	        = (LaunchProjectileComponent)allocateComponent(LaunchProjectileComponent.class);
-        smokeGun.setSetsPerActivation(1);
-        smokeGun.setShotsPerSet(3);
-	    smokeGun.setDelayBetweenShots(0.0f);
-	    smokeGun.setObjectTypeToSpawn(GameObjectType.SMOKE_BIG);
-	    smokeGun.setVelocityX(200.0f);
-	    smokeGun.setVelocityY(200.0f);
-	    smokeGun.setOffsetX(16);
-	    smokeGun.setOffsetY(16);
-	    smokeGun.setThetaError(1.0f);
-	    
-	    LaunchProjectileComponent smokeGun2 
-	        = (LaunchProjectileComponent)allocateComponent(LaunchProjectileComponent.class);
-	    smokeGun2.setSetsPerActivation(1);
-	    smokeGun2.setShotsPerSet(3);
-	    smokeGun2.setDelayBetweenShots(0.0f);
-	    smokeGun2.setObjectTypeToSpawn(GameObjectType.SMOKE_SMALL);
-	    smokeGun2.setVelocityX(200.0f);
-	    smokeGun2.setVelocityY(200.0f);
-	    smokeGun2.setThetaError(1.0f); 
-	    smokeGun2.setOffsetX(16);
-	    smokeGun2.setOffsetY(16);
-        
-        object.life = 1;    
-        object.destroyOnDeactivation = true;
-        
-        object.add(lifetime);
-        object.add(smokeGun);
-        object.add(smokeGun2);
-
+    	GameObject object = null;
+        // This is just an effect, so we can live without it if our pools are exhausted.
+        if (componentAvailable(LaunchProjectileComponent.class, 2)) {
+	        object = mGameObjectPool.allocate();
+	        object.getPosition().set(positionX, positionY);
+	        object.activationRadius = mTightActivationRadius;
+	        object.width = 1;
+	        object.height = 1;
+	        
+	        LifetimeComponent lifetime = (LifetimeComponent)allocateComponent(LifetimeComponent.class);
+	        lifetime.setTimeUntilDeath(0.5f);
+	        
+	        LaunchProjectileComponent smokeGun 
+		        = (LaunchProjectileComponent)allocateComponent(LaunchProjectileComponent.class);
+	        smokeGun.setSetsPerActivation(1);
+	        smokeGun.setShotsPerSet(3);
+		    smokeGun.setDelayBetweenShots(0.0f);
+		    smokeGun.setObjectTypeToSpawn(GameObjectType.SMOKE_BIG);
+		    smokeGun.setVelocityX(200.0f);
+		    smokeGun.setVelocityY(200.0f);
+		    smokeGun.setOffsetX(16);
+		    smokeGun.setOffsetY(16);
+		    smokeGun.setThetaError(1.0f);
+		    
+		    LaunchProjectileComponent smokeGun2 
+		        = (LaunchProjectileComponent)allocateComponent(LaunchProjectileComponent.class);
+		    smokeGun2.setSetsPerActivation(1);
+		    smokeGun2.setShotsPerSet(3);
+		    smokeGun2.setDelayBetweenShots(0.0f);
+		    smokeGun2.setObjectTypeToSpawn(GameObjectType.SMOKE_SMALL);
+		    smokeGun2.setVelocityX(200.0f);
+		    smokeGun2.setVelocityY(200.0f);
+		    smokeGun2.setThetaError(1.0f); 
+		    smokeGun2.setOffsetX(16);
+		    smokeGun2.setOffsetY(16);
+	        
+	        object.life = 1;    
+	        object.destroyOnDeactivation = true;
+	        
+	        object.add(lifetime);
+	        object.add(smokeGun);
+	        object.add(smokeGun2);
+        }
         return object;
     }
     

@@ -32,7 +32,7 @@ public class RenderSystem extends BaseObject {
     private int mQueueIndex;
     
     private final static int DRAW_QUEUE_COUNT = 2;
-    private final static int MAX_RENDER_OBJECTS_PER_FRAME = 128;
+    private final static int MAX_RENDER_OBJECTS_PER_FRAME = 256;
     private final static int MAX_RENDER_OBJECTS = MAX_RENDER_OBJECTS_PER_FRAME * DRAW_QUEUE_COUNT;
     
     public RenderSystem() {
@@ -40,7 +40,7 @@ public class RenderSystem extends BaseObject {
         mElementPool = new RenderElementPool(MAX_RENDER_OBJECTS);
         mRenderQueues = new ObjectManager[DRAW_QUEUE_COUNT];
         for (int x = 0; x < DRAW_QUEUE_COUNT; x++) {
-            mRenderQueues[x] = new PhasedObjectManager();
+            mRenderQueues[x] = new PhasedObjectManager(MAX_RENDER_OBJECTS_PER_FRAME);
         }
         mQueueIndex = 0;
     }

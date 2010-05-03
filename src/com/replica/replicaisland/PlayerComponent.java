@@ -82,9 +82,6 @@ public class PlayerComponent extends GameComponent {
     private boolean mGhostActive;
     private float mGhostDeactivatedTime;
     private float mGhostChargeTime;
-    private boolean mJumpButtonPressed;
-    private boolean mAttackButtonPressed;
-    private boolean mAttackButtonTriggered;
     private InventoryComponent mInventory;
     private Vector2 mHotSpotTestPoint;
     private ChangeComponentsComponent mInvincibleSwap;
@@ -112,7 +109,6 @@ public class PlayerComponent extends GameComponent {
         mJumpTime = 0.0f;
         mGhostActive = false;
         mGhostDeactivatedTime = 0.0f;
-        mJumpButtonPressed = false;
         mInventory = null;
         mGhostChargeTime = 0.0f;
         mHotSpotTestPoint.zero();
@@ -120,13 +116,11 @@ public class PlayerComponent extends GameComponent {
         mInvincibleEndTime = 0.0f;
         mHitReaction = null;
         mFuelAirRefillSpeed = FUEL_AIR_REFILL_SPEED;
-        mAttackButtonPressed = false;
-        mAttackButtonTriggered = false;
     }
 
     protected void move(float time, float timeDelta, GameObject parentObject) {
         VectorPool pool = sSystemRegistry.vectorPool;
-        InputSystem input = sSystemRegistry.inputSystem;
+        InputGameInterface input = sSystemRegistry.inputGameInterface;
         
         if (pool != null && input != null) {
 
@@ -142,16 +136,18 @@ public class PlayerComponent extends GameComponent {
                 }
             }
             
-            if (input.getRollTriggered() || mJumpButtonPressed) {
+            final InputXY dpad = input.getDirectionalPad();
+            final InputButton jumpButton = input.getJumpButton();
+            
+            if (dpad.getPressed() || jumpButton.getPressed()) {
                 Vector2 impulse = pool.allocate();
 
-                if (input.getRollTriggered()) {
-                    impulse.set(input.getRollDirection());
-                    impulse.y = 0.0f;
+                if (dpad.getPressed()) {
+                    impulse.set(dpad.getX(), 0.0f);
                 }
                                 
-                if (mJumpButtonPressed) {
-                    if (input.getTouchTriggered() && mTouchingGround) {
+                if (jumpButton.getPressed()) {
+                    if (jumpButton.getTriggered(time) && mTouchingGround) {
                     	// In this case, velocity is instant so we don't need to scale
                     	// it by time.
                         impulse.y = AIR_VERTICAL_IMPULSE_SPEED_FROM_GROUND; 
@@ -226,9 +222,7 @@ public class PlayerComponent extends GameComponent {
         mTouchingGround = parentObject.touchingGround();
 
         mRocketsOn = false;
-        mJumpButtonPressed = false;
-        mAttackButtonPressed = false;
-        mAttackButtonTriggered = false;
+        
         
         if (parentObject.getCurrentAction() == ActionType.INVALID) {
             gotoMove(parentObject);
@@ -260,37 +254,7 @@ public class PlayerComponent extends GameComponent {
                 mHitReaction.setForceInvincible(false);
             }
         }
-        
-        // TODO: the region we are testing here should probably be moved out into some constants
-        // file and then independently tested by the hud and by the player so we can remove
-        // this cross dependency.
-        InputSystem input = sSystemRegistry.inputSystem;
-        if (input != null) {
-        	if (input.getTouchPressed()) {
-	            if (input.getTouchedWithinRegion(
-	                    ButtonConstants.FLY_BUTTON_REGION_X, 
-	                    ButtonConstants.FLY_BUTTON_REGION_Y, 
-	                    ButtonConstants.FLY_BUTTON_REGION_WIDTH, 
-	                    ButtonConstants.FLY_BUTTON_REGION_HEIGHT)) {
-	                mJumpButtonPressed = true;
-	            } else if (input.getTouchedWithinRegion(
-	                    ButtonConstants.STOMP_BUTTON_REGION_X, 
-	                    ButtonConstants.STOMP_BUTTON_REGION_Y, 
-	                    ButtonConstants.STOMP_BUTTON_REGION_WIDTH, 
-	                    ButtonConstants.STOMP_BUTTON_REGION_HEIGHT)) {
-	                mAttackButtonPressed = true;
-	                if (input.getTouchTriggered()) {
-	                	mAttackButtonTriggered = true;
-	                }
-	            }
-        	}
-            if (input.getClickPressed()) {
-                mAttackButtonPressed = true;
-                if (input.getClickTriggered()) {
-                	mAttackButtonTriggered = true;
-                }
-            }
-        }
+       
         
      // Watch for hit reactions or death interrupting the state machine.
         if (mState != State.DEAD && mState != State.WIN ) {
@@ -344,9 +308,10 @@ public class PlayerComponent extends GameComponent {
         }
         
         final HudSystem hud = sSystemRegistry.hudSystem;
+        final InputGameInterface input = sSystemRegistry.inputGameInterface;
         if (hud != null) {
             hud.setFuelPercent(mFuel / FUEL_AMOUNT);
-            hud.setButtonState(mJumpButtonPressed, mAttackButtonPressed);
+            hud.setButtonState(input.getJumpButton().getPressed(), input.getAttackButton().getPressed());
         }
     
     }
@@ -360,10 +325,12 @@ public class PlayerComponent extends GameComponent {
         if (!mGhostActive) {
             move(time, timeDelta, parentObject);
             
-            InputSystem input = sSystemRegistry.inputSystem;
-            if (mAttackButtonTriggered && !mTouchingGround) {
+            final InputGameInterface input = sSystemRegistry.inputGameInterface;
+            final InputButton attackButton = input.getAttackButton();
+            
+            if (attackButton.getTriggered(time) && !mTouchingGround) {
                 gotoStomp(parentObject);
-            } else if (mAttackButtonPressed && mTouchingGround
+            } else if (attackButton.getPressed() && mTouchingGround
                     && mGhostDeactivatedTime + GHOST_REACTIVATION_DELAY < time) {
                 mGhostChargeTime += timeDelta;
                 if (mGhostChargeTime > GHOST_CHARGE_TIME) {
@@ -389,11 +356,9 @@ public class PlayerComponent extends GameComponent {
                         if (camera != null) {
                             camera.setTarget(ghost);
                         }
-                        
-                        input.clearClickTriggered();
-                    }
+                                            }
                 } 
-            } else if (!input.getClickPressed()) {
+            } else if (!attackButton.getPressed()) {
                 mGhostChargeTime = 0.0f;
             }
         }

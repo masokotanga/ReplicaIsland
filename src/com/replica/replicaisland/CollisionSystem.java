@@ -357,8 +357,8 @@ public class CollisionSystem extends BaseObject {
             
             // Note: I'm deviating from the Bresenham algorithm here by adding one to force the end
             // tile to be visited.
-            final int lateralDelta = Math.abs(deltaX) + 1;
-            final int verticalDelta = Math.abs(deltaY) + 1;
+            final int lateralDelta = (endTileX > 0 && endTileX < worldWidth - 1) ? Math.abs(deltaX) + 1 : Math.abs(deltaX);
+            final int verticalDelta = (endTileY > 0 && endTileY < worldHeight - 1) ? Math.abs(deltaY) + 1 : Math.abs(deltaY);
                 
             final int deltaX2 = lateralDelta * 2;
             final int deltaY2 = verticalDelta * 2;

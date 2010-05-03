@@ -23,6 +23,7 @@ import android.app.Dialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.media.AudioManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.view.animation.Animation;
@@ -166,8 +167,30 @@ public class MainMenuActivity extends Activity {
                     	editor.commit();
             		}
             	}
+            	
             }
+            
+            
+            
             if (Math.abs(lastVersion) < Math.abs(AndouKun.VERSION)) {
+            	// This is a new install or an upgrade.
+            	
+            	// Check the safe mode option.
+            	// Useful reference: http://en.wikipedia.org/wiki/List_of_Android_devices
+            	if (Build.PRODUCT.contains("morrison") ||	// Motorola Cliq/Dext
+            			Build.MODEL.contains("Pulse") ||	// Huawei Pulse
+            			Build.MODEL.contains("U8220") ||	// Huawei Pulse
+            			Build.MODEL.contains("U8230") ||	// Huawei U8230
+            			Build.MODEL.contains("MB300") ||	// Motorola Backflip
+            			Build.MODEL.contains("Behold+II")) {	// Samsung Behold II
+            		// These are all models that users have complained about.  They likely use
+            		// the same buggy QTC graphics driver.  Turn on Safe Mode by default
+            		// for these devices.
+            		SharedPreferences.Editor editor = prefs.edit();
+                	editor.putBoolean(AndouKun.PREFERENCE_SAFE_MODE, true);
+                	editor.commit();
+            	}
+            	
             	// show what's new message
             	SharedPreferences.Editor editor = prefs.edit();
             	editor.putInt(AndouKun.PREFERENCE_LAST_VERSION, AndouKun.VERSION);

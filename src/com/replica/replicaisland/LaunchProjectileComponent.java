@@ -146,40 +146,42 @@ public class LaunchProjectileComponent extends GameComponent {
             final float x = parentObject.getPosition().x + offsetX;
             final float y = parentObject.getPosition().y + offsetY;
             GameObject object = factory.spawn(mObjectTypeToSpawn, x, y, flip);
-            mWorkingVector.set(1.0f, 1.0f);
-            if (mThetaError > 0.0f) {
-                final float angle = (float)(Math.random() * mThetaError * Math.PI * 2.0f);
-                mWorkingVector.x = (float)Math.sin(angle);
-                mWorkingVector.y = (float)Math.cos(angle);
-                if (Utils.close(mWorkingVector.length2(), 0.0f)) {
-                    mWorkingVector.set(1.0f, 1.0f);
-                }
-            }
-            mWorkingVector.x *= flip ? -mVelocityX : mVelocityX;
-            mWorkingVector.y *= mVelocityY;  
-            
-            object.getVelocity().set(mWorkingVector);
-            object.getTargetVelocity().set(mWorkingVector);
-            // Center the projectile on the spawn point.
-            object.getPosition().x -= object.width / 2.0f;
-            object.getPosition().y -= object.height / 2.0f;
-            
-            
-            if (mTrackProjectiles) {
-                object.commitUpdates();
-                LifetimeComponent projectileLife = object.findByClass(LifetimeComponent.class);
-                if (projectileLife != null) {
-                    projectileLife.setTrackingSpawner(this);
-                    mTrackedProjectileCount++;
-                }
-            }
-            manager.add(object);
-            
-            if (mShootSound != null) {
-            	SoundSystem sound = sSystemRegistry.soundSystem;
-            	if (sound != null) {
-            		sound.play(mShootSound, false, SoundSystem.PRIORITY_NORMAL);
-            	}
+            if (object != null) {
+	            mWorkingVector.set(1.0f, 1.0f);
+	            if (mThetaError > 0.0f) {
+	                final float angle = (float)(Math.random() * mThetaError * Math.PI * 2.0f);
+	                mWorkingVector.x = (float)Math.sin(angle);
+	                mWorkingVector.y = (float)Math.cos(angle);
+	                if (Utils.close(mWorkingVector.length2(), 0.0f)) {
+	                    mWorkingVector.set(1.0f, 1.0f);
+	                }
+	            }
+	            mWorkingVector.x *= flip ? -mVelocityX : mVelocityX;
+	            mWorkingVector.y *= mVelocityY;  
+	            
+	            object.getVelocity().set(mWorkingVector);
+	            object.getTargetVelocity().set(mWorkingVector);
+	            // Center the projectile on the spawn point.
+	            object.getPosition().x -= object.width / 2.0f;
+	            object.getPosition().y -= object.height / 2.0f;
+	            
+	            
+	            if (mTrackProjectiles) {
+	                object.commitUpdates();
+	                LifetimeComponent projectileLife = object.findByClass(LifetimeComponent.class);
+	                if (projectileLife != null) {
+	                    projectileLife.setTrackingSpawner(this);
+	                    mTrackedProjectileCount++;
+	                }
+	            }
+	            manager.add(object);
+	            
+	            if (mShootSound != null) {
+	            	SoundSystem sound = sSystemRegistry.soundSystem;
+	            	if (sound != null) {
+	            		sound.play(mShootSound, false, SoundSystem.PRIORITY_NORMAL);
+	            	}
+	            }
             }
         }
         

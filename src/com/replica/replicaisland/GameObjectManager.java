@@ -31,7 +31,7 @@ import java.util.Comparator;
  * deactivated.
  */
 public class GameObjectManager extends ObjectManager {
-    private static final int MAX_GAME_OBJECTS = 256;
+    private static final int MAX_GAME_OBJECTS = 384;
     private float mMaxActivationRadius;
     private final static HorizontalPositionComparator sGameObjectComparator 
         = new HorizontalPositionComparator();
