@@ -237,6 +237,11 @@ public class LaunchProjectileComponent extends GameComponent {
         mTrackProjectiles = true;
     }
     
+    public final void disableProjectileTracking() {
+        mMaxTrackedProjectiles = 0;
+        mTrackProjectiles = false;
+    }
+    
     public final void trackedProjectileDestroyed() {
         assert mTrackProjectiles;
         if (mTrackedProjectileCount == mMaxTrackedProjectiles) {

@@ -17,6 +17,8 @@
 
 package com.replica.replicaisland;
 
+import java.lang.reflect.InvocationTargetException;
+
 import android.app.Activity;
 import android.content.Intent;
 import android.graphics.drawable.AnimationDrawable;
@@ -49,6 +51,15 @@ public class AnimationPlayerActivity extends Activity {
         @Override
         public void handleMessage(Message msg) {
         	AnimationPlayerActivity.this.finish();
+        	if (UIConstants.mOverridePendingTransition != null) {
+  		       try {
+  		    	  UIConstants.mOverridePendingTransition.invoke(AnimationPlayerActivity.this, R.anim.activity_fade_in, R.anim.activity_fade_out);
+  		       } catch (InvocationTargetException ite) {
+  		           DebugLog.d("Activity Transition", "Invocation Target Exception");
+  		       } catch (IllegalAccessException ie) {
+  		    	   DebugLog.d("Activity Transition", "Illegal Access Exception");
+  		       }
+        	}
         }
 
         public void sleep(long delayMillis) {
@@ -136,6 +147,9 @@ public class AnimationPlayerActivity extends Activity {
 		  }
 		  
 	  }
+	  
+	  // Pass the calling intent back so that we can figure out which animation just played.
+	  setResult(RESULT_OK, callingIntent);
 	  
 	}
 	

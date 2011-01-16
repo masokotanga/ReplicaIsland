@@ -18,6 +18,27 @@
           android:layout_gravity="center"
           android:visibility="gone"/>
           
+   <LinearLayout
+   		android:id="@+id/levelNameBox"
+   		android:visibility="gone"
+   		android:background="@drawable/custom_toast_border" 
+   		android:layout_width="wrap_content" 
+   		android:layout_height="wrap_content" 
+   		android:orientation="vertical" 
+   		android:padding="10dp" 
+   		android:layout_gravity="bottom|center_horizontal" 
+   		android:layout_marginBottom="60dp">
+   		<TextView 
+   			android:id="@+id/levelName"
+   			android:layout_height="wrap_content" 
+   			android:layout_width="wrap_content" 
+   			android:textColor="#FFFFFF" 
+   			android:layout_gravity="center_horizontal" 
+   			android:text="Memory #001" android:textSize="20sp" 
+   			android:textStyle="bold" 
+   			android:typeface="sans"/>
+   </LinearLayout>
+          
    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
 		android:id="@+id/pleaseWaitMessage"
 		android:orientation="horizontal"

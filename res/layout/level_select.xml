@@ -5,7 +5,7 @@
     android:layout_height="fill_parent"
     >
 	<ListView android:id="@+id/android:list"
-          android:layout_width="fill_parent"
+          	android:layout_width="fill_parent"
         	android:layout_height="fill_parent"
         	android:dividerHeight = "0dp"
         	android:footerDividersEnabled = "false"

@@ -16,6 +16,9 @@
 
 package com.replica.replicaisland;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -37,6 +40,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
+import android.widget.TextView;
 
 /**
  * Core activity for the game.  Sets up a surface view for OpenGL, bootstraps
@@ -56,44 +60,33 @@ public class AndouKun extends Activity implements SensorEventListener {
     
     private static final int ROLL_TO_FACE_BUTTON_DELAY = 400;
     
-    public static final String PREFERENCE_LEVEL_ROW = "levelRow";
-    public static final String PREFERENCE_LEVEL_INDEX = "levelIndex";
-    public static final String PREFERENCE_LEVEL_COMPLETED = "levelsCompleted";
-    public static final String PREFERENCE_SOUND_ENABLED = "enableSound";
-    public static final String PREFERENCE_SAFE_MODE = "safeMode";
-    public static final String PREFERENCE_SESSION_ID = "session";
-    public static final String PREFERENCE_LAST_VERSION = "lastVersion";
-    public static final String PREFERENCE_STATS_ENABLED = "enableStats";
-    public static final String PREFERENCE_CLICK_ATTACK = "enableClickAttack";
-    public static final String PREFERENCE_TILT_CONTROLS = "enableTiltControls";
-    public static final String PREFERENCE_TILT_SENSITIVITY = "tiltSensitivity";
-    public static final String PREFERENCE_MOVEMENT_SENSITIVITY = "movementSensitivity";
-    public static final String PREFERENCE_ENABLE_DEBUG = "enableDebug";
-    
-    public static final String PREFERENCE_LEFT_KEY = "keyLeft";
-    public static final String PREFERENCE_RIGHT_KEY = "keyRight";
-    public static final String PREFERENCE_ATTACK_KEY = "keyAttack";
-    public static final String PREFERENCE_JUMP_KEY = "keyJump";
-    
-    public static final String PREFERENCE_NAME = "ReplicaIslandPrefs";
-    
     public static final int QUIT_GAME_DIALOG = 0;
     
     // If the version is a negative number, debug features (logging and a debug menu)
     // are enabled.
-    public static final int VERSION = 13;
+    public static final int VERSION = 14;
 
     private GLSurfaceView mGLSurfaceView;
     private Game mGame;
     private boolean mMethodTracing;
     private int mLevelRow;
     private int mLevelIndex;
+    private float mTotalGameTime;
+    private int mRobotsDestroyed;
+    private int mPearlsCollected;
+    private int mPearlsTotal;
+    private int mLastEnding = -1;
+    private int mLinearMode = 0;
+    private int mDifficulty = 1;
+    private boolean mExtrasUnlocked;
     private SensorManager mSensorManager;
     private SharedPreferences.Editor mPrefsEditor;
     private long mLastTouchTime = 0L;
     private long mLastRollTime = 0L;
     private View mPauseMessage = null;
     private View mWaitMessage = null;
+    private View mLevelNameBox = null;
+    private TextView mLevelName = null;
     private Animation mWaitFadeAnimation = null;
     
     private EventReporter mEventReporter;
@@ -106,8 +99,8 @@ public class AndouKun extends Activity implements SensorEventListener {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         
-        SharedPreferences prefs = getSharedPreferences(PREFERENCE_NAME, MODE_PRIVATE);
-        final boolean debugLogs = prefs.getBoolean(PREFERENCE_ENABLE_DEBUG, false);
+        SharedPreferences prefs = getSharedPreferences(PreferenceConstants.PREFERENCE_NAME, MODE_PRIVATE);
+        final boolean debugLogs = prefs.getBoolean(PreferenceConstants.PREFERENCE_ENABLE_DEBUG, false);
         
         if (VERSION < 0 || debugLogs) {
         	DebugLog.setDebugLogging(true);
@@ -122,6 +115,8 @@ public class AndouKun extends Activity implements SensorEventListener {
         mGLSurfaceView = (GLSurfaceView) findViewById(R.id.glsurfaceview);
         mPauseMessage = findViewById(R.id.pausedMessage);
         mWaitMessage = findViewById(R.id.pleaseWaitMessage);
+        mLevelNameBox = findViewById(R.id.levelNameBox);
+        mLevelName = (TextView)findViewById(R.id.levelName);
         mWaitFadeAnimation = AnimationUtils.loadAnimation(this, R.anim.wait_message_fade);
 
         
@@ -139,71 +134,108 @@ public class AndouKun extends Activity implements SensorEventListener {
         	float ratio =((float)dm.widthPixels) / dm.heightPixels;
         	defaultWidth = (int)(defaultHeight * ratio);
         }
-        mGame.bootstrap(this, dm.widthPixels, dm.heightPixels, defaultWidth, defaultHeight);
-        mGLSurfaceView.setRenderer(mGame.getRenderer());
         
+ 
         mLevelRow = 0;
         mLevelIndex = 0;
         
         
         mPrefsEditor = prefs.edit();
-        mLevelRow = prefs.getInt(PREFERENCE_LEVEL_ROW, 0);
-        mLevelIndex = prefs.getInt(PREFERENCE_LEVEL_INDEX, 0);
-        int completed = prefs.getInt(PREFERENCE_LEVEL_COMPLETED, 0);
+        // Make sure that old game information is cleared when we start a new game.
+        if (getIntent().getBooleanExtra("newGame", false)) {
+        	mPrefsEditor.remove(PreferenceConstants.PREFERENCE_LEVEL_ROW);
+        	mPrefsEditor.remove(PreferenceConstants.PREFERENCE_LEVEL_INDEX);
+        	mPrefsEditor.remove(PreferenceConstants.PREFERENCE_LEVEL_COMPLETED);
+        	mPrefsEditor.remove(PreferenceConstants.PREFERENCE_LINEAR_MODE);
+        	mPrefsEditor.remove(PreferenceConstants.PREFERENCE_TOTAL_GAME_TIME);
+        	mPrefsEditor.remove(PreferenceConstants.PREFERENCE_PEARLS_COLLECTED);
+        	mPrefsEditor.remove(PreferenceConstants.PREFERENCE_PEARLS_TOTAL);
+        	mPrefsEditor.remove(PreferenceConstants.PREFERENCE_ROBOTS_DESTROYED);
+			mPrefsEditor.remove(PreferenceConstants.PREFERENCE_DIFFICULTY);
+			mPrefsEditor.commit();
+        }
+        
+        
+        mLevelRow = prefs.getInt(PreferenceConstants.PREFERENCE_LEVEL_ROW, 0);
+        mLevelIndex = prefs.getInt(PreferenceConstants.PREFERENCE_LEVEL_INDEX, 0);
+        int completed = prefs.getInt(PreferenceConstants.PREFERENCE_LEVEL_COMPLETED, 0);
+        mTotalGameTime = prefs.getFloat(PreferenceConstants.PREFERENCE_TOTAL_GAME_TIME, 0.0f);
+        mRobotsDestroyed = prefs.getInt(PreferenceConstants.PREFERENCE_ROBOTS_DESTROYED, 0);
+        mPearlsCollected = prefs.getInt(PreferenceConstants.PREFERENCE_PEARLS_COLLECTED, 0);
+        mPearlsTotal = prefs.getInt(PreferenceConstants.PREFERENCE_PEARLS_TOTAL, 0);
+        mLinearMode = prefs.getInt(PreferenceConstants.PREFERENCE_LINEAR_MODE, 
+        		getIntent().getBooleanExtra("linearMode", false) ? 1 : 0);
+        mExtrasUnlocked = prefs.getBoolean(PreferenceConstants.PREFERENCE_EXTRAS_UNLOCKED, false);
+        mDifficulty = prefs.getInt(PreferenceConstants.PREFERENCE_DIFFICULTY, getIntent().getIntExtra("difficulty", 1));
+
+        mGame.bootstrap(this, dm.widthPixels, dm.heightPixels, defaultWidth, defaultHeight, mDifficulty);
+        mGLSurfaceView.setRenderer(mGame.getRenderer());
+        
+       
+        int levelTreeResource = R.xml.level_tree;
+	    if (mLinearMode != 0) {
+	    	levelTreeResource = R.xml.linear_level_tree;
+	    }
+        
         
         // Android activity lifecycle rules make it possible for this activity to be created
         // and come to the foreground without the MainMenu Activity ever running, so in that
         // case we need to make sure that this static data is valid.
-        if (!LevelTree.isLoaded()) {
-        	LevelTree.loadLevelTree(R.xml.level_tree, this);
+        if (!LevelTree.isLoaded(levelTreeResource)) {
+        	LevelTree.loadLevelTree(levelTreeResource, this);
         	LevelTree.loadAllDialog(this);
         }
         
-        if (!LevelTree.levelIsValid(mLevelRow, mLevelIndex)) {
-        	// bad data?  Let's try to recover.
-        	
-        	// is the row valid?
-        	if (LevelTree.rowIsValid(mLevelRow)) {
-        		// In that case, just start the row over.
-        		mLevelIndex = 0;
-        		completed = 0;
-        	} else if (LevelTree.rowIsValid(mLevelRow - 1)) {
-        		// If not, try to back up a row.
-        		mLevelRow--;
-        		mLevelIndex = 0;
-        		completed = 0;
-        	}
-        	
-        	
-        	if (!LevelTree.levelIsValid(mLevelRow, mLevelIndex)) {
-	        	// if all else fails, start the game over.
-	        	mLevelRow = 0;
-	        	mLevelIndex = 0;
-	        	completed = 0;
-        	}
-        } 
-        
-        LevelTree.updateCompletedState(mLevelRow, completed);
-        
-        mGame.setPendingLevel(LevelTree.get(mLevelRow, mLevelIndex));
-        if (LevelTree.get(mLevelRow, mLevelIndex).showWaitMessage) {
-    		showWaitMessage();
+        if (getIntent().getBooleanExtra("startAtLevelSelect", false)) {
+        	Intent i = new Intent(this, LevelSelectActivity.class);
+        	i.putExtra("unlockAll", true);
+            startActivityForResult(i, ACTIVITY_CHANGE_LEVELS);
         } else {
-    		hideWaitMessage();
+	        if (!LevelTree.levelIsValid(mLevelRow, mLevelIndex)) {
+	        	// bad data?  Let's try to recover.
+	        	
+	        	// is the row valid?
+	        	if (LevelTree.rowIsValid(mLevelRow)) {
+	        		// In that case, just start the row over.
+	        		mLevelIndex = 0;
+	        		completed = 0;
+	        	} else if (LevelTree.rowIsValid(mLevelRow - 1)) {
+	        		// If not, try to back up a row.
+	        		mLevelRow--;
+	        		mLevelIndex = 0;
+	        		completed = 0;
+	        	}
+	        	
+	        	
+	        	if (!LevelTree.levelIsValid(mLevelRow, mLevelIndex)) {
+		        	// if all else fails, start the game over.
+		        	mLevelRow = 0;
+		        	mLevelIndex = 0;
+		        	completed = 0;
+	        	}
+	        } 
+	        
+	        LevelTree.updateCompletedState(mLevelRow, completed);
+	        
+	        mGame.setPendingLevel(LevelTree.get(mLevelRow, mLevelIndex));
+	        if (LevelTree.get(mLevelRow, mLevelIndex).showWaitMessage) {
+	    		showWaitMessage();
+	        } else {
+	    		hideWaitMessage();
+	        }
         }
-        
         mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
 
         // This activity uses the media stream.
         setVolumeControlStream(AudioManager.STREAM_MUSIC);
         
           
-        mSessionId = prefs.getLong(PREFERENCE_SESSION_ID, System.currentTimeMillis());
+        mSessionId = prefs.getLong(PreferenceConstants.PREFERENCE_SESSION_ID, System.currentTimeMillis());
         
         
         mEventReporter = null;
         mEventReporterThread = null;
-        final boolean statsEnabled = prefs.getBoolean(PREFERENCE_STATS_ENABLED, true);
+        final boolean statsEnabled = prefs.getBoolean(PreferenceConstants.PREFERENCE_STATS_ENABLED, true);
         if (statsEnabled) {
 	        mEventReporter = new EventReporter();
 	        mEventReporterThread = new Thread(mEventReporter);
@@ -255,8 +287,8 @@ public class AndouKun extends Activity implements SensorEventListener {
         super.onResume();
         
         // Preferences may have changed while we were paused.
-        SharedPreferences prefs = getSharedPreferences(PREFERENCE_NAME, MODE_PRIVATE);
-        final boolean debugLogs = prefs.getBoolean(PREFERENCE_ENABLE_DEBUG, false);
+        SharedPreferences prefs = getSharedPreferences(PreferenceConstants.PREFERENCE_NAME, MODE_PRIVATE);
+        final boolean debugLogs = prefs.getBoolean(PreferenceConstants.PREFERENCE_ENABLE_DEBUG, false);
         
         if (VERSION < 0 || debugLogs) {
         	DebugLog.setDebugLogging(true);
@@ -269,20 +301,21 @@ public class AndouKun extends Activity implements SensorEventListener {
         mGame.onResume(this, false);
        
         
-        final boolean soundEnabled = prefs.getBoolean(PREFERENCE_SOUND_ENABLED, true);
-        final boolean safeMode = prefs.getBoolean(PREFERENCE_SAFE_MODE, false);
-        final boolean clickAttack = prefs.getBoolean(PREFERENCE_CLICK_ATTACK, true);
-        final boolean tiltControls = prefs.getBoolean(PREFERENCE_TILT_CONTROLS, false);
-        final int tiltSensitivity = prefs.getInt(PREFERENCE_TILT_SENSITIVITY, 50);
-        final int movementSensitivity = prefs.getInt(PREFERENCE_MOVEMENT_SENSITIVITY, 100);
-        
-        final int leftKey = prefs.getInt(PREFERENCE_LEFT_KEY, KeyEvent.KEYCODE_DPAD_LEFT);
-        final int rightKey = prefs.getInt(PREFERENCE_RIGHT_KEY, KeyEvent.KEYCODE_DPAD_RIGHT);
-        final int jumpKey = prefs.getInt(PREFERENCE_JUMP_KEY, KeyEvent.KEYCODE_SPACE);
-        final int attackKey = prefs.getInt(PREFERENCE_ATTACK_KEY, KeyEvent.KEYCODE_SHIFT_LEFT);
+        final boolean soundEnabled = prefs.getBoolean(PreferenceConstants.PREFERENCE_SOUND_ENABLED, true);
+        final boolean safeMode = prefs.getBoolean(PreferenceConstants.PREFERENCE_SAFE_MODE, false);
+        final boolean clickAttack = prefs.getBoolean(PreferenceConstants.PREFERENCE_CLICK_ATTACK, true);
+        final boolean tiltControls = prefs.getBoolean(PreferenceConstants.PREFERENCE_TILT_CONTROLS, false);
+        final int tiltSensitivity = prefs.getInt(PreferenceConstants.PREFERENCE_TILT_SENSITIVITY, 50);
+        final int movementSensitivity = prefs.getInt(PreferenceConstants.PREFERENCE_MOVEMENT_SENSITIVITY, 100);
+        final boolean onScreenControls = prefs.getBoolean(PreferenceConstants.PREFERENCE_SCREEN_CONTROLS, false);
+
+        final int leftKey = prefs.getInt(PreferenceConstants.PREFERENCE_LEFT_KEY, KeyEvent.KEYCODE_DPAD_LEFT);
+        final int rightKey = prefs.getInt(PreferenceConstants.PREFERENCE_RIGHT_KEY, KeyEvent.KEYCODE_DPAD_RIGHT);
+        final int jumpKey = prefs.getInt(PreferenceConstants.PREFERENCE_JUMP_KEY, KeyEvent.KEYCODE_SPACE);
+        final int attackKey = prefs.getInt(PreferenceConstants.PREFERENCE_ATTACK_KEY, KeyEvent.KEYCODE_SHIFT_LEFT);
         
         mGame.setSoundEnabled(soundEnabled);
-        mGame.setControlOptions(clickAttack, tiltControls, tiltSensitivity, movementSensitivity);
+        mGame.setControlOptions(clickAttack, tiltControls, tiltSensitivity, movementSensitivity, onScreenControls);
         mGame.setKeyConfig(leftKey, rightKey, jumpKey, attackKey);
         mGame.setSafeMode(safeMode);
         
@@ -332,7 +365,8 @@ public class AndouKun extends Activity implements SensorEventListener {
     	boolean result = true;
     	if (keyCode == KeyEvent.KEYCODE_BACK) {
 			final long time = System.currentTimeMillis();
-    		if (time - mLastRollTime > ROLL_TO_FACE_BUTTON_DELAY) {
+    		if (time - mLastRollTime > ROLL_TO_FACE_BUTTON_DELAY &&
+    				time - mLastTouchTime > ROLL_TO_FACE_BUTTON_DELAY) {
     			showDialog(QUIT_GAME_DIALOG);
     			result = true;
     		}
@@ -343,7 +377,8 @@ public class AndouKun extends Activity implements SensorEventListener {
     			mGame.onResume(this, true);
     		} else {
     			final long time = System.currentTimeMillis();
-    	        if (time - mLastRollTime > ROLL_TO_FACE_BUTTON_DELAY) {
+    	        if (time - mLastRollTime > ROLL_TO_FACE_BUTTON_DELAY &&
+    	        		time - mLastTouchTime > ROLL_TO_FACE_BUTTON_DELAY) {
     	        	showPauseMessage();
     	        	mGame.onPause();
     	        }
@@ -440,6 +475,8 @@ public class AndouKun extends Activity implements SensorEventListener {
 	        if (resultCode == RESULT_OK) {
 	            mLevelRow = intent.getExtras().getInt("row");
 	            mLevelIndex = intent.getExtras().getInt("index");
+		        LevelTree.updateCompletedState(mLevelRow, 0);
+
 	            saveGame();
 	            
 	            mGame.setPendingLevel(LevelTree.get(mLevelRow, mLevelIndex));    
@@ -451,6 +488,11 @@ public class AndouKun extends Activity implements SensorEventListener {
 	            
 	        }  
         } else if (requestCode == ACTIVITY_ANIMATION_PLAYER) {
+        	int lastAnimation = intent.getIntExtra("animation", -1);
+        	// record ending events.
+        	if (lastAnimation > -1) {
+        		mGame.setLastEnding(lastAnimation);
+        	}
         	// on finishing animation playback, force a level change.
         	onGameFlowEvent(GameFlowEvent.EVENT_GO_TO_NEXT_LEVEL, 0);
         }
@@ -510,6 +552,10 @@ public class AndouKun extends Activity implements SensorEventListener {
                    mLevelRow++;
                }
                
+    		   mTotalGameTime += mGame.getGameTime();
+    		   mRobotsDestroyed += mGame.getRobotsDestroyed();
+    		   mPearlsCollected += mGame.getPearlsCollected();
+    		   mPearlsTotal += mGame.getPearlsTotal();
                
                if (mLevelRow < LevelTree.levels.size()) {
             	   final LevelTree.Level currentLevel = LevelTree.get(mLevelRow, mLevelIndex);
@@ -517,6 +563,15 @@ public class AndouKun extends Activity implements SensorEventListener {
             		   // go to the level select.
             		   Intent i = new Intent(this, LevelSelectActivity.class);
                        startActivityForResult(i, ACTIVITY_CHANGE_LEVELS);
+                       if (UIConstants.mOverridePendingTransition != null) {
+        	 		       try {
+        	 		    	  UIConstants.mOverridePendingTransition.invoke(AndouKun.this, R.anim.activity_fade_in, R.anim.activity_fade_out);
+        	 		       } catch (InvocationTargetException ite) {
+        	 		           DebugLog.d("Activity Transition", "Invocation Target Exception");
+        	 		       } catch (IllegalAccessException ie) {
+        	 		    	   DebugLog.d("Activity Transition", "Illegal Access Exception");
+        	 		       }
+        	            }
             	   } else {
             		   // go directly to the next level
 	                   mGame.setPendingLevel(currentLevel);
@@ -542,9 +597,23 @@ public class AndouKun extends Activity implements SensorEventListener {
                    // We beat the game!
             	   mLevelRow = 0;
             	   mLevelIndex = 0;
+            	   mLastEnding = mGame.getLastEnding();
+            	   mExtrasUnlocked = true;
             	   saveGame();
                    mGame.stop();
+                   Intent i = new Intent(this, GameOverActivity.class);
+                   startActivity(i);
+                   if (UIConstants.mOverridePendingTransition != null) {
+    	 		       try {
+    	 		    	  UIConstants.mOverridePendingTransition.invoke(AndouKun.this, R.anim.activity_fade_in, R.anim.activity_fade_out);
+    	 		       } catch (InvocationTargetException ite) {
+    	 		           DebugLog.d("Activity Transition", "Invocation Target Exception");
+    	 		       } catch (IllegalAccessException ie) {
+    	 		    	   DebugLog.d("Activity Transition", "Illegal Access Exception");
+    	 		       }
+    	            }
                    finish();
+                   
                }
                break;
            case GameFlowEvent.EVENT_SHOW_DIARY:
@@ -553,6 +622,15 @@ public class AndouKun extends Activity implements SensorEventListener {
                level.diaryCollected = true;
                i.putExtra("text", level.dialogResources.diaryEntry);
                startActivity(i);
+               if (UIConstants.mOverridePendingTransition != null) {
+ 	 		       try {
+ 	 		    	  UIConstants.mOverridePendingTransition.invoke(AndouKun.this, R.anim.activity_fade_in, R.anim.activity_fade_out);
+ 	 		       } catch (InvocationTargetException ite) {
+ 	 		           DebugLog.d("Activity Transition", "Invocation Target Exception");
+ 	 		       } catch (IllegalAccessException ie) {
+ 	 		    	   DebugLog.d("Activity Transition", "Illegal Access Exception");
+ 	 		       }
+ 	            }
                break;
                
            case GameFlowEvent.EVENT_SHOW_DIALOG_CHARACTER1:
@@ -576,6 +654,15 @@ public class AndouKun extends Activity implements SensorEventListener {
         	   i = new Intent(this, AnimationPlayerActivity.class);
                i.putExtra("animation", index);
                startActivityForResult(i, ACTIVITY_ANIMATION_PLAYER);
+               if (UIConstants.mOverridePendingTransition != null) {
+	 		       try {
+	 		    	  UIConstants.mOverridePendingTransition.invoke(AndouKun.this, R.anim.activity_fade_in, R.anim.activity_fade_out);
+	 		       } catch (InvocationTargetException ite) {
+	 		           DebugLog.d("Activity Transition", "Invocation Target Exception");
+	 		       } catch (IllegalAccessException ie) {
+	 		    	   DebugLog.d("Activity Transition", "Illegal Access Exception");
+	 		       }
+	            }
                break;
         	   
        }
@@ -584,10 +671,18 @@ public class AndouKun extends Activity implements SensorEventListener {
     protected void saveGame() {
     	if (mPrefsEditor != null) {
     		final int completed = LevelTree.packCompletedLevels(mLevelRow);
-    		mPrefsEditor.putInt(PREFERENCE_LEVEL_ROW, mLevelRow);
-    		mPrefsEditor.putInt(PREFERENCE_LEVEL_INDEX, mLevelIndex);
-    		mPrefsEditor.putInt(PREFERENCE_LEVEL_COMPLETED, completed);
-    		mPrefsEditor.putLong(PREFERENCE_SESSION_ID, mSessionId);
+    		mPrefsEditor.putInt(PreferenceConstants.PREFERENCE_LEVEL_ROW, mLevelRow);
+    		mPrefsEditor.putInt(PreferenceConstants.PREFERENCE_LEVEL_INDEX, mLevelIndex);
+    		mPrefsEditor.putInt(PreferenceConstants.PREFERENCE_LEVEL_COMPLETED, completed);
+    		mPrefsEditor.putLong(PreferenceConstants.PREFERENCE_SESSION_ID, mSessionId);
+    		mPrefsEditor.putFloat(PreferenceConstants.PREFERENCE_TOTAL_GAME_TIME, mTotalGameTime);
+    		mPrefsEditor.putInt(PreferenceConstants.PREFERENCE_LAST_ENDING, mLastEnding);
+    		mPrefsEditor.putInt(PreferenceConstants.PREFERENCE_ROBOTS_DESTROYED, mRobotsDestroyed);
+    		mPrefsEditor.putInt(PreferenceConstants.PREFERENCE_PEARLS_COLLECTED, mPearlsCollected);
+    		mPrefsEditor.putInt(PreferenceConstants.PREFERENCE_PEARLS_TOTAL, mPearlsTotal);
+    		mPrefsEditor.putInt(PreferenceConstants.PREFERENCE_LINEAR_MODE, mLinearMode);
+    		mPrefsEditor.putBoolean(PreferenceConstants.PREFERENCE_EXTRAS_UNLOCKED, mExtrasUnlocked);
+    		mPrefsEditor.putInt(PreferenceConstants.PREFERENCE_DIFFICULTY, mDifficulty);
     		mPrefsEditor.commit();
     	}
     }
@@ -596,11 +691,18 @@ public class AndouKun extends Activity implements SensorEventListener {
     	if (mPauseMessage != null) {
     		mPauseMessage.setVisibility(View.VISIBLE);
     	}
+    	if (mLevelNameBox != null && mLevelName != null) {
+    		mLevelName.setText(LevelTree.get(mLevelRow, mLevelIndex).name);
+    		mLevelNameBox.setVisibility(View.VISIBLE);
+    	}
     }
     
     protected void hidePauseMessage() {
     	if (mPauseMessage != null) {
     		mPauseMessage.setVisibility(View.GONE);
+    	}
+    	if (mLevelNameBox != null) {
+    		mLevelNameBox.setVisibility(View.GONE);
     	}
     }
     
@@ -628,9 +730,9 @@ public class AndouKun extends Activity implements SensorEventListener {
     public void onSensorChanged(SensorEvent event) {
        synchronized (this) {
            if (event.sensor.getType() == Sensor.TYPE_ORIENTATION) {
-               final float x = event.values[0];
-               final float y = event.values[1];
-               final float z = event.values[2];
+               final float x = event.values[1];
+               final float y = event.values[2];
+               final float z = event.values[0];
                mGame.onOrientationEvent(x, y, z);
            }
        }
@@ -646,6 +748,15 @@ public class AndouKun extends Activity implements SensorEventListener {
                 .setPositiveButton(R.string.quit_game_dialog_ok, new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int whichButton) {
                     	finish();
+                    	if (UIConstants.mOverridePendingTransition != null) {
+         	 		       try {
+         	 		    	  UIConstants.mOverridePendingTransition.invoke(AndouKun.this, R.anim.activity_fade_in, R.anim.activity_fade_out);
+         	 		       } catch (InvocationTargetException ite) {
+         	 		           DebugLog.d("Activity Transition", "Invocation Target Exception");
+         	 		       } catch (IllegalAccessException ie) {
+         	 		    	   DebugLog.d("Activity Transition", "Illegal Access Exception");
+         	 		       }
+         	            }
                     }
                 })
                 .setNegativeButton(R.string.quit_game_dialog_cancel, null)

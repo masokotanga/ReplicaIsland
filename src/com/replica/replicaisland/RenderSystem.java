@@ -32,7 +32,7 @@ public class RenderSystem extends BaseObject {
     private int mQueueIndex;
     
     private final static int DRAW_QUEUE_COUNT = 2;
-    private final static int MAX_RENDER_OBJECTS_PER_FRAME = 256;
+    private final static int MAX_RENDER_OBJECTS_PER_FRAME = 384;
     private final static int MAX_RENDER_OBJECTS = MAX_RENDER_OBJECTS_PER_FRAME * DRAW_QUEUE_COUNT;
     
     public RenderSystem() {

@@ -32,6 +32,8 @@ public class LifetimeComponent extends GameComponent {
     private boolean mVulnerableToDeathTiles;
     private boolean mDieOnHitBackground;
     private Sound mDeathSound;
+    private boolean mIncrementEventCounter;
+    private int mEventCounter;
     
     public LifetimeComponent() {
         super();
@@ -51,6 +53,8 @@ public class LifetimeComponent extends GameComponent {
         mVulnerableToDeathTiles = false;
         mDieOnHitBackground = false;
         mDeathSound = null;
+        mIncrementEventCounter = false;
+        mEventCounter = -1;
     }
     
     public void setDieWhenInvisible(boolean die) {
@@ -63,6 +67,11 @@ public class LifetimeComponent extends GameComponent {
     
     public void setObjectToSpawnOnDeath(GameObjectFactory.GameObjectType type) {
         mSpawnOnDeathType = type;
+    }
+    
+    public void setIncrementEventCounter(int event) {
+    	mIncrementEventCounter = true;
+    	mEventCounter = event;
     }
     
     @Override
@@ -126,6 +135,11 @@ public class LifetimeComponent extends GameComponent {
                 ghost.releaseControl(parentObject);
             }
         }
+        
+        if (mIncrementEventCounter) {
+        	EventRecorder recorder = sSystemRegistry.eventRecorder;
+        	recorder.incrementEventCounter(mEventCounter);
+        }
 
         if (mSpawnOnDeathType != GameObjectFactory.GameObjectType.INVALID) {
             GameObject object = factory.spawn(mSpawnOnDeathType, parentObject.getPosition().x, 
@@ -140,6 +154,7 @@ public class LifetimeComponent extends GameComponent {
         if (mTrackingSpawner != null) {
             mTrackingSpawner.trackedProjectileDestroyed();
         }
+        
         
         if (manager != null) {
             manager.destroy(parentObject);

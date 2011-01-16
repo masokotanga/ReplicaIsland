@@ -63,17 +63,18 @@ public final class LevelTree {
     }
     public final static ArrayList<LevelGroup> levels = new ArrayList<LevelGroup>();
     private static boolean mLoaded = false;
+    private static int mLoadedResource = 0;
     
     public static final Level get(int row, int index) {
     	return levels.get(row).levels.get(index);
     }
     
-    public static final boolean isLoaded() {
-    	return mLoaded;
+    public static final boolean isLoaded(int resource) {
+    	return mLoaded && mLoadedResource == resource;
     }
     
     public static final void loadLevelTree(int resource, Context context) {
-        if (levels.size() > 0) {
+        if (levels.size() > 0 && mLoadedResource == resource) {
         	// already loaded
         	return;
         }
@@ -189,6 +190,7 @@ public final class LevelTree {
             parser.close(); 
         } 
         mLoaded = true;
+        mLoadedResource = resource;
     }
     
     public final static void loadAllDialog(Context context) {

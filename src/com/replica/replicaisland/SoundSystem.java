@@ -116,6 +116,15 @@ public class SoundSystem extends BaseObject {
        mSoundPool.resume(stream);
     }
     
+    public final void stopAll() {
+    	final int count = mLoopingStreams.length;
+    	for (int x = count - 1; x >= 0; x--) {
+    		if (mLoopingStreams[x] >= 0) {
+    			stop(mLoopingStreams[x]);
+    		}
+    	}
+    }
+    
     // HACK: There's no way to pause an entire sound pool, but if we
     // don't do something when our parent activity is paused, looping
     // sounds will continue to play.  Rather that reproduce all the bookkeeping

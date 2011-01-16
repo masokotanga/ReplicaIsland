@@ -32,6 +32,8 @@ public class InputGameInterface extends BaseObject {
     private final static float ROLL_DECAY = 8.0f;
 	
     private final static float KEY_FILTER = 0.25f;
+    private final static float SLIDER_FILTER = 0.25f;
+
     
 	private InputButton mJumpButton = new InputButton();
 	private InputButton mAttackButton = new InputButton();
@@ -49,10 +51,10 @@ public class InputGameInterface extends BaseObject {
 	private float mOrientationSensitivity = 1.0f;
 	private float mOrientationSensitivityFactor = 1.0f;
 	private float mMovementSensitivity = 1.0f;
-
-
+	
 	private boolean mUseClickButtonForAttack = true;
 	private boolean mUseOrientationForMovement = false;
+	private boolean mUseOnScreenControls = false;
 	
 	private float mLastRollTime;
 	
@@ -80,8 +82,32 @@ public class InputGameInterface extends BaseObject {
 		// tilt is easy
 		mTilt.clone(orientation);
 		
+		final InputTouchScreen touch = input.getTouchScreen();
+		final float gameTime = sSystemRegistry.timeSystem.getGameTime();
+
+		float sliderOffset = 0;
+		
 		// update movement inputs
-		if (mUseOrientationForMovement) {
+		if (mUseOnScreenControls) {
+			final InputXY sliderTouch = touch.findPointerInRegion(
+					ButtonConstants.MOVEMENT_SLIDER_REGION_X, 
+                    ButtonConstants.MOVEMENT_SLIDER_REGION_Y, 
+                    ButtonConstants.MOVEMENT_SLIDER_REGION_WIDTH, 
+                    ButtonConstants.MOVEMENT_SLIDER_REGION_HEIGHT);
+			
+			if (sliderTouch != null) {
+				final float halfWidth = ButtonConstants.MOVEMENT_SLIDER_BAR_WIDTH / 2.0f;
+				final float center = ButtonConstants.MOVEMENT_SLIDER_X + halfWidth;
+				final float offset = sliderTouch.getX() - center;
+				float magnitudeRamp = Math.abs(offset) > halfWidth ? 1.0f : (Math.abs(offset) / halfWidth);
+				
+				final float magnitude = magnitudeRamp * Utils.sign(offset) * SLIDER_FILTER * mMovementSensitivity;
+				sliderOffset = magnitudeRamp * Utils.sign(offset);
+				mDirectionalPad.press(gameTime, magnitude, 0.0f);
+			} else {
+				mDirectionalPad.release();
+			}
+		} else if (mUseOrientationForMovement) {
 			mDirectionalPad.clone(orientation);
 			mDirectionalPad.setMagnitude(
 					filterOrientationForMovement(orientation.getX()), 
@@ -94,7 +120,6 @@ public class InputGameInterface extends BaseObject {
 			final float leftPressedTime = left.getLastPressedTime();
 			final float rightPressedTime = right.getLastPressedTime();
 			
-			final float gameTime = sSystemRegistry.timeSystem.getGameTime();
 			
 			if (trackball.getLastPressedTime() > Math.max(leftPressedTime, rightPressedTime)) {
 				// The trackball never goes "up", so force it to turn off if it wasn't triggered in the last frame.
@@ -170,19 +195,28 @@ public class InputGameInterface extends BaseObject {
 		
 		// update other buttons
 		final InputButton jumpKey = keys[mJumpKeyCode];
-		final InputXY touch = input.getTouchScreen();
+		
+		// when on-screen movement controls are on, the fly and attack buttons are flipped.
+		float flyButtonRegionX = ButtonConstants.FLY_BUTTON_REGION_X;
+		float stompButtonRegionX = ButtonConstants.STOMP_BUTTON_REGION_X;
+
+		if (mUseOnScreenControls) {
+			ContextParameters params = sSystemRegistry.contextParameters;
+			flyButtonRegionX = params.gameWidth - ButtonConstants.FLY_BUTTON_REGION_WIDTH - ButtonConstants.FLY_BUTTON_REGION_X;
+			stompButtonRegionX = params.gameWidth - ButtonConstants.STOMP_BUTTON_REGION_WIDTH - ButtonConstants.STOMP_BUTTON_REGION_X;
+		}
+		
+		final InputXY jumpTouch = touch.findPointerInRegion(
+				flyButtonRegionX, 
+                ButtonConstants.FLY_BUTTON_REGION_Y, 
+                ButtonConstants.FLY_BUTTON_REGION_WIDTH, 
+                ButtonConstants.FLY_BUTTON_REGION_HEIGHT);
 		
 		if (jumpKey.getPressed()) {
 			mJumpButton.press(jumpKey.getLastPressedTime(), jumpKey.getMagnitude());
-		} else if (touch.getPressed() && getTouchedWithinRegion(
-							touch.getX(), 
-							touch.getY(),
-	                        ButtonConstants.FLY_BUTTON_REGION_X, 
-	                        ButtonConstants.FLY_BUTTON_REGION_Y, 
-	                        ButtonConstants.FLY_BUTTON_REGION_WIDTH, 
-	                        ButtonConstants.FLY_BUTTON_REGION_HEIGHT)) {
+		} else if (jumpTouch != null) {
 			if (!mJumpButton.getPressed()) {
-				mJumpButton.press(touch.getLastPressedTime(), 1.0f);
+				mJumpButton.press(jumpTouch.getLastPressedTime(), 1.0f);
 			}
 		} else {
 			mJumpButton.release();
@@ -191,25 +225,34 @@ public class InputGameInterface extends BaseObject {
 		final InputButton attackKey = keys[mAttackKeyCode];
 		final InputButton clickButton = keys[KeyEvent.KEYCODE_DPAD_CENTER]; // special case
 		
+		final InputXY stompTouch = touch.findPointerInRegion(
+				stompButtonRegionX, 
+                ButtonConstants.STOMP_BUTTON_REGION_Y, 
+                ButtonConstants.STOMP_BUTTON_REGION_WIDTH, 
+                ButtonConstants.STOMP_BUTTON_REGION_HEIGHT);
+		
 		if (mUseClickButtonForAttack && clickButton.getPressed()) {
 			mAttackButton.press(clickButton.getLastPressedTime(), clickButton.getMagnitude());
 		} else if (attackKey.getPressed()) {
 			mAttackButton.press(attackKey.getLastPressedTime(), attackKey.getMagnitude());
-		} else if (touch.getPressed() && getTouchedWithinRegion(
-							touch.getX(), 
-							touch.getY(),
-	                        ButtonConstants.STOMP_BUTTON_REGION_X, 
-	                        ButtonConstants.STOMP_BUTTON_REGION_Y, 
-	                        ButtonConstants.STOMP_BUTTON_REGION_WIDTH, 
-	                        ButtonConstants.STOMP_BUTTON_REGION_HEIGHT)) {
+		} else if (stompTouch != null) {
 			// Since touch events come in constantly, we only want to press the attack button
 			// here if it's not already down.  That makes it act like the other buttons (down once then up).
 			if (!mAttackButton.getPressed()) {
-				mAttackButton.press(touch.getLastPressedTime(), 1.0f);
+				mAttackButton.press(stompTouch.getLastPressedTime(), 1.0f);
 			}
 		} else {
 			mAttackButton.release();
 		}
+
+		// This doesn't seem like exactly the right place to write to the HUD, but on the other hand,
+		// putting this code elsewhere causes dependencies between exact HUD content and physics, which
+		// we sometimes wish to avoid.
+		final HudSystem hud = sSystemRegistry.hudSystem;
+        if (hud != null) {
+            hud.setButtonState(mJumpButton.getPressed(), mAttackButton.getPressed(), mDirectionalPad.getPressed());
+            hud.setMovementSliderOffset(sliderOffset);
+        }
 	}
 	
 	
@@ -230,12 +273,6 @@ public class InputGameInterface extends BaseObject {
     	return smoothedMagnatude;
 	}
 	
-	private final boolean getTouchedWithinRegion(float x, float y, float regionX, float regionY, float regionWidth, float regionHeight) {
-		 return (x >= regionX &&
-				 y >= regionY &&
-				 x <= regionX + regionWidth &&
-				 y <= regionY + regionHeight);
-	}
 	
 	public final InputXY getDirectionalPad() {
 		return mDirectionalPad;
@@ -275,6 +312,10 @@ public class InputGameInterface extends BaseObject {
 
 	public void setMovementSensitivity(float sensitivity) {
 		mMovementSensitivity  = sensitivity;
+	}
+	
+	public void setUseOnScreenControls(boolean onscreen) {
+		mUseOnScreenControls = onscreen;
 	}
 	
 }

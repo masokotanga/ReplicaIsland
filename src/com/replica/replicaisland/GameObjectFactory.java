@@ -23,6 +23,7 @@ import com.replica.replicaisland.CollisionParameters.HitType;
 import com.replica.replicaisland.EnemyAnimationComponent.EnemyAnimations;
 import com.replica.replicaisland.GameObject.ActionType;
 import com.replica.replicaisland.GameObject.Team;
+import com.replica.replicaisland.GenericAnimationComponent.Animation;
 
 /** A class for generating game objects at runtime.
  * This should really be replaced with something that is data-driven, but it is hard to do data
@@ -99,6 +100,7 @@ public class GameObjectFactory extends BaseObject {
         BROBOT_SPAWNER_LEFT (40),
         BREAKABLE_BLOCK(41),
         THE_SOURCE(42),
+        HINT_SIGN(43),
         
         // Effects
         DUST(48),
@@ -118,13 +120,7 @@ public class GameObjectFactory extends BaseObject {
         
         FRAMERATE_WATCHER(57),
         INFINITE_SPAWNER(58),
-        
-        SMOKE_BIG(59),
-        SMOKE_SMALL(60),
-        
-        CRUSH_FLASH(61),
-        FLASH(62),
-        
+        CRUSHER_ANDOU(59),
         
         
         // Projectiles
@@ -137,6 +133,12 @@ public class GameObjectFactory extends BaseObject {
         WANDA_SHOT(70),
         
         // Special Objects -- Not spawnable normally
+        SMOKE_BIG(-1),
+        SMOKE_SMALL(-1),
+        
+        CRUSH_FLASH(-1),
+        FLASH(-1),
+        
         PLAYER_JETS(-1),
         PLAYER_SPARKS(-1),
         PLAYER_GLOW(-1),
@@ -215,6 +217,7 @@ public class GameObjectFactory extends BaseObject {
                 new ComponentClass(ButtonAnimationComponent.class, 32),
                 new ComponentClass(CameraBiasComponent.class, 8),
                 new ComponentClass(ChangeComponentsComponent.class, 256),
+                new ComponentClass(CrusherAndouComponent.class, 1),
                 new ComponentClass(DoorAnimationComponent.class, 256),  //!
                 new ComponentClass(DynamicCollisionComponent.class, 256),
                 new ComponentClass(EnemyAnimationComponent.class, 256),
@@ -238,7 +241,7 @@ public class GameObjectFactory extends BaseObject {
                 new ComponentClass(PatrolComponent.class, 256),
                 new ComponentClass(PhysicsComponent.class, 8),
                 new ComponentClass(PlayerComponent.class, 1),
-                new ComponentClass(PlaySingleSoundComponent.class, 32),
+                new ComponentClass(PlaySingleSoundComponent.class, 128),
                 new ComponentClass(PopOutComponent.class, 32),
                 new ComponentClass(RenderComponent.class, 384),
                 new ComponentClass(ScrollerComponent.class, 8),
@@ -249,7 +252,6 @@ public class GameObjectFactory extends BaseObject {
                 new ComponentClass(SolidSurfaceComponent.class, 16),
                 new ComponentClass(SpriteComponent.class, 384),
                 new ComponentClass(TheSourceComponent.class, 1),
-
                 
         };
         
@@ -489,6 +491,9 @@ public class GameObjectFactory extends BaseObject {
             case THE_SOURCE:
             	newObject = spawnObjectTheSource(x, y);
             	break;
+            case HINT_SIGN:
+            	newObject = spawnObjectSign(x, y);
+            	break;
             case DUST:
                 newObject = spawnDust(x, y, horzFlip);
                 break;
@@ -512,6 +517,9 @@ public class GameObjectFactory extends BaseObject {
             	break;
             case INFINITE_SPAWNER:
             	newObject = spawnObjectInfiniteSpawner(x, y);
+            	break;
+            case CRUSHER_ANDOU:
+            	newObject = spawnObjectCrusherAndou(x,y);
             	break;
             case SMOKE_BIG:
                 newObject = spawnEffectSmokeBig(x, y);
@@ -938,7 +946,7 @@ public class GameObjectFactory extends BaseObject {
         invincibleSwap.setPingPongBehavior(true);
         player.setInvincibleSwap(invincibleSwap);
 
-        object.life = PlayerComponent.MAX_PLAYER_LIFE;
+        object.life = PlayerComponent.getDifficultyConstants().getMaxPlayerLife();
         object.team = Team.PLAYER;
         
         // Very very basic DDA.  Make the game easier if we've died on this level too much.
@@ -1081,12 +1089,16 @@ public class GameObjectFactory extends BaseObject {
             glowSprite.setCollisionComponent(glowCollision);
             
             FadeDrawableComponent glowFade = (FadeDrawableComponent)allocateComponent(FadeDrawableComponent.class);
+            final float glowDuration = PlayerComponent.getDifficultyConstants().getGlowDuration();
             glowFade.setupFade(1.0f, 0.0f, 0.15f, 
             		FadeDrawableComponent.LOOP_TYPE_PING_PONG, 
             		FadeDrawableComponent.FADE_EASE, 
-            		PlayerComponent.GLOW_DURATION - 4.0f);	// 4 seconds before the glow ends, start flashing
-            glowFade.setPhaseDuration(PlayerComponent.GLOW_DURATION);
+            		glowDuration - 4.0f);	// 4 seconds before the glow ends, start flashing
+            glowFade.setPhaseDuration(glowDuration);
             glowFade.setRenderComponent(glowRender);
+            
+            // HACK
+            player.setInvincibleFader(glowFade);
         
             invincibleSwap.addSwapInComponent(glowRender);
             invincibleSwap.addSwapInComponent(glowSprite);
@@ -1244,6 +1256,7 @@ public class GameObjectFactory extends BaseObject {
         LifetimeComponent lifetime = (LifetimeComponent)allocateComponent(LifetimeComponent.class);
         lifetime.setObjectToSpawnOnDeath(GameObjectType.EXPLOSION_GIANT);
         lifetime.setVulnerableToDeathTiles(true);
+        lifetime.setIncrementEventCounter(EventRecorder.COUNTER_ROBOTS_DESTROYED);
         
         GhostComponent ghost = (GhostComponent)allocateComponent(GhostComponent.class);
         ghost.setMovementSpeed(500.0f);
@@ -1489,8 +1502,10 @@ public class GameObjectFactory extends BaseObject {
             staticData = new FixedSizeArray<BaseObject>(staticObjectCount);
              
             PopOutComponent popOut = (PopOutComponent)allocateComponent(PopOutComponent.class);
-            popOut.setAppearDistance(150);
-            popOut.setHideDistance(190);
+            // edit: these guys turned out to be really annoying, so I'm changing the values
+            // here to force them to always be out.
+            popOut.setAppearDistance(2000);
+            popOut.setHideDistance(4000);
             
             FixedSizeArray<CollisionVolume> basicVulnerabilityVolume = new FixedSizeArray<CollisionVolume>(1);
             basicVulnerabilityVolume.add(new SphereCollisionVolume(16, 32, 32));
@@ -4375,7 +4390,8 @@ public class GameObjectFactory extends BaseObject {
         //dynamicCollision.setHitReactionComponent(hitReact);
 
         LifetimeComponent life = (LifetimeComponent)allocateComponent(LifetimeComponent.class);
-
+        life.setIncrementEventCounter(EventRecorder.COUNTER_PEARLS_COLLECTED);
+        
         object.life = 1;
             
         object.add(render);
@@ -4387,6 +4403,9 @@ public class GameObjectFactory extends BaseObject {
         
         addStaticData(GameObjectType.COIN, object, sprite);
         sprite.playAnimation(0);
+        
+        EventRecorder recorder = sSystemRegistry.eventRecorder;
+        recorder.incrementEventCounter(EventRecorder.COUNTER_PEARLS_TOTAL);
 
         return object;
     }
@@ -4982,7 +5001,7 @@ public class GameObjectFactory extends BaseObject {
         
         FixedSizeArray<BaseObject> staticData = getStaticData(GameObjectType.BROBOT_SPAWNER);
         if (staticData == null) {
-            final int staticObjectCount = 3;
+            final int staticObjectCount = 2;
             staticData = new FixedSizeArray<BaseObject>(staticObjectCount);
          
             FixedSizeArray<CollisionVolume> basicVulnerabilityVolume = 
@@ -5026,16 +5045,6 @@ public class GameObjectFactory extends BaseObject {
             solidSurface.addSurface(surface2Start, surface2End, surface2Normal);
             solidSurface.addSurface(surface3Start, surface3End, surface3Normal);
         
-            GhostComponent ghost = (GhostComponent)allocateComponent(GhostComponent.class);
-            ghost.setTargetAction(ActionType.IDLE);
-            ghost.changeActionOnButton(ActionType.ATTACK);
-            
-            SoundSystem sound = BaseObject.sSystemRegistry.soundSystem;
-            if (sound != null) {
-            	ghost.setAmbientSound(sound.load(R.raw.sound_possession));
-            }
-            
-            staticData.add(ghost);
             staticData.add(solidSurface);
             staticData.add(idle);
             
@@ -5069,23 +5078,6 @@ public class GameObjectFactory extends BaseObject {
         gun.setVelocityY(300.0f);
         gun.enableProjectileTracking(1);
         
-        LaunchProjectileComponent possessedGun 
-            = (LaunchProjectileComponent)allocateComponent(LaunchProjectileComponent.class);
-        possessedGun.setRequiredAction(ActionType.ATTACK);
-        possessedGun.setDelayBeforeFirstSet(0.0f);
-        possessedGun.setObjectTypeToSpawn(GameObjectType.BROBOT_BULLET);
-        possessedGun.setOffsetX(36);
-        possessedGun.setOffsetY(50);
-        possessedGun.setVelocityX(600.0f);
-        possessedGun.setVelocityY(600.0f);
-        possessedGun.setThetaError(0.3f);
-        
-        ChangeComponentsComponent componentSwap = (ChangeComponentsComponent)allocateComponent(ChangeComponentsComponent.class);
-        componentSwap.addSwapOutComponent(gun);
-        componentSwap.addSwapInComponent(possessedGun);
-        componentSwap.setPingPongBehavior(true);
-        
-        hitReact.setPossessionComponent(componentSwap);
         
         object.team = Team.ENEMY;
         
@@ -5100,19 +5092,13 @@ public class GameObjectFactory extends BaseObject {
         object.add(gun);
         object.add(collision);
         object.add(hitReact);
-        object.add(componentSwap);
         
         
         addStaticData(GameObjectType.BROBOT_SPAWNER, object, sprite);
         
         object.commitUpdates();
         
-        GhostComponent possessedGhost = object.findByClass(GhostComponent.class);
-        if (possessedGhost != null) {
-            object.remove(possessedGhost);   // Not supposed to be added yet.
-            componentSwap.addSwapInComponent(possessedGhost);
-        }
-        
+   
         sprite.playAnimation(0);
 
         return object;
@@ -5123,11 +5109,148 @@ public class GameObjectFactory extends BaseObject {
     	object.facingDirection.y = -1; //vertical flip
     	LaunchProjectileComponent gun = object.findByClass(LaunchProjectileComponent.class);
     	if (gun != null) {
-    		gun.enableProjectileTracking(68);
-    		gun.setDelayBetweenShots(0.5f);
+    		gun.disableProjectileTracking();
+    		gun.setDelayBetweenShots(0.15f);
+    		gun.setSetsPerActivation(1);
+    		gun.setShotsPerSet(60);
     	}
     	
     	return object;
+    }
+    
+    public GameObject spawnObjectCrusherAndou(float positionX, float positionY) {
+        TextureLibrary textureLibrary = sSystemRegistry.shortTermTextureLibrary;
+        
+        GameObject object = mGameObjectPool.allocate();
+        object.getPosition().set(positionX, positionY);
+        object.activationRadius = mAlwaysActive;
+        object.width = 64;
+        object.height = 64;
+        
+        FixedSizeArray<BaseObject> staticData = getStaticData(GameObjectType.CRUSHER_ANDOU);
+        
+        if (staticData == null) {
+            final int staticObjectCount = 5;
+            staticData = new FixedSizeArray<BaseObject>(staticObjectCount);
+            
+            GameComponent gravity = allocateComponent(GravityComponent.class);
+            GameComponent movement = allocateComponent(MovementComponent.class);
+            PhysicsComponent physics = (PhysicsComponent)allocateComponent(PhysicsComponent.class);
+
+            physics.setMass(9.1f);   // ~90kg w/ earth gravity
+            physics.setDynamicFrictionCoeffecient(0.2f);
+            physics.setStaticFrictionCoeffecient(0.01f);
+            
+            // Animation Data
+            FixedSizeArray<CollisionVolume> basicVulnerabilityVolume = 
+                new FixedSizeArray<CollisionVolume>(1);
+            basicVulnerabilityVolume.add(new SphereCollisionVolume(16, 32, 32));
+
+            SpriteAnimation idle = new SpriteAnimation(Animation.IDLE, 1);
+            idle.addFrame(new AnimationFrame(textureLibrary.allocateTexture(R.drawable.andou_stand), 
+                    1.0f, null, basicVulnerabilityVolume));
+            
+          
+            FixedSizeArray<CollisionVolume> stompAttackVolume = 
+                new FixedSizeArray<CollisionVolume>(1);
+            stompAttackVolume.add(new AABoxCollisionVolume(16, -5.0f, 32, 37, HitType.HIT));
+            
+            
+            SpriteAnimation stomp = new SpriteAnimation(Animation.ATTACK, 4);
+            stomp.addFrame(
+                    new AnimationFrame(textureLibrary.allocateTexture(R.drawable.andou_stomp01), 
+                    		Utils.framesToTime(24, 1), stompAttackVolume, null));
+            stomp.addFrame(
+                    new AnimationFrame(textureLibrary.allocateTexture(R.drawable.andou_stomp02), 
+                    		Utils.framesToTime(24, 1), stompAttackVolume, null));
+            stomp.addFrame(
+                    new AnimationFrame(textureLibrary.allocateTexture(R.drawable.andou_stomp03), 
+                    		Utils.framesToTime(24, 1), stompAttackVolume, null));
+            stomp.addFrame(
+                    new AnimationFrame(textureLibrary.allocateTexture(R.drawable.andou_stomp04), 
+                    		Utils.framesToTime(24, 1), stompAttackVolume, null));
+            
+           
+            
+            // Save static data
+            staticData.add(gravity);
+            staticData.add(movement);
+            staticData.add(physics);
+            
+            
+            staticData.add(idle);
+            staticData.add(stomp);
+            
+            
+            setStaticData(GameObjectType.CRUSHER_ANDOU, staticData);
+        }
+        
+        
+        RenderComponent render = (RenderComponent)allocateComponent(RenderComponent.class);
+        render.setPriority(SortConstants.PLAYER);
+        BackgroundCollisionComponent bgcollision 
+            = (BackgroundCollisionComponent)allocateComponent(BackgroundCollisionComponent.class);
+        bgcollision.setSize(32, 48);
+        bgcollision.setOffset(16, 0);
+        
+        GenericAnimationComponent animation = (GenericAnimationComponent)allocateComponent(GenericAnimationComponent.class);
+        
+        SpriteComponent sprite = (SpriteComponent)allocateComponent(SpriteComponent.class);
+        sprite.setSize((int)object.width, (int)object.height);
+        sprite.setRenderComponent(render);
+        animation.setSprite(sprite);
+
+        
+        DynamicCollisionComponent dynamicCollision 
+            = (DynamicCollisionComponent)allocateComponent(DynamicCollisionComponent.class);
+        sprite.setCollisionComponent(dynamicCollision);
+        
+        HitReactionComponent hitReact = (HitReactionComponent)allocateComponent(HitReactionComponent.class);
+        hitReact.setBounceOnHit(true);
+        hitReact.setPauseOnAttack(true);
+        hitReact.setInvincibleTime(3.0f);
+        hitReact.setSpawnOnDealHit(HitType.HIT, GameObjectType.CRUSH_FLASH, false, true);
+        
+      
+        dynamicCollision.setHitReactionComponent(hitReact);
+        
+       
+
+        object.life = 1;
+        object.team = Team.PLAYER;
+       
+        object.add(animation);
+        object.add(bgcollision);
+        object.add(render);
+        object.add(sprite);  
+        object.add(dynamicCollision);  
+        object.add(hitReact); 
+         
+        addStaticData(GameObjectType.CRUSHER_ANDOU, object, sprite);
+        
+        sprite.playAnimation(Animation.IDLE);
+        
+        object.commitUpdates();
+        
+        ChangeComponentsComponent swap = (ChangeComponentsComponent)allocateComponent(ChangeComponentsComponent.class);
+        
+        final int count = object.getCount();
+        for (int x = 0; x < count; x++) {
+        	swap.addSwapInComponent((GameComponent)object.get(x));
+        }
+        
+        object.removeAll();
+        
+        CrusherAndouComponent crusher = (CrusherAndouComponent)allocateComponent(CrusherAndouComponent.class);
+        
+        crusher.setSwap(swap);
+        
+        object.add(swap);
+        object.add(crusher);
+        
+        object.commitUpdates();
+        
+        return object;
     }
     
     public GameObject spawnObjectBreakableBlock(float positionX, float positionY) {
@@ -5328,6 +5451,66 @@ public class GameObjectFactory extends BaseObject {
 	
 	    return object;
 	}
+	
+	public GameObject spawnObjectSign(float positionX, float positionY) {
+        TextureLibrary textureLibrary = sSystemRegistry.shortTermTextureLibrary;
+        
+        GameObject object = mGameObjectPool.allocate();
+        object.getPosition().set(positionX, positionY);
+        object.activationRadius = mTightActivationRadius;
+        object.width = 32;
+        object.height = 32;
+        
+        FixedSizeArray<BaseObject> staticData = getStaticData(GameObjectType.HINT_SIGN);
+        if (staticData == null) {
+            final int staticObjectCount = 1;
+            staticData = new FixedSizeArray<BaseObject>(staticObjectCount);
+                  
+            FixedSizeArray<CollisionVolume> basicVulnerabilityVolume = 
+                new FixedSizeArray<CollisionVolume>(1);
+            basicVulnerabilityVolume.add(new AABoxCollisionVolume(8, 0, 24, 32, HitType.COLLECT));
+            
+            SpriteAnimation idle = new SpriteAnimation(0, 1);
+            AnimationFrame frame1 = new AnimationFrame(textureLibrary.allocateTexture(R.drawable.object_sign), 
+                    Utils.framesToTime(24, 1), null, basicVulnerabilityVolume);
+            
+            idle.addFrame(frame1);
+           
+            idle.setLoop(true);
+            
+            staticData.add(idle);
+            
+            setStaticData(GameObjectType.HINT_SIGN, staticData);
+        }
+        
+        RenderComponent render = (RenderComponent)allocateComponent(RenderComponent.class);
+        render.setPriority(SortConstants.GENERAL_OBJECT);
+
+        SpriteComponent sprite = (SpriteComponent)allocateComponent(SpriteComponent.class);
+        sprite.setSize((int)object.width, (int)object.height);
+        sprite.setRenderComponent(render);
+
+        DynamicCollisionComponent dynamicCollision = (DynamicCollisionComponent)allocateComponent(DynamicCollisionComponent.class);
+        sprite.setCollisionComponent(dynamicCollision);
+        
+        HitReactionComponent hitReact = (HitReactionComponent)allocateComponent(HitReactionComponent.class);
+        dynamicCollision.setHitReactionComponent(hitReact);
+        hitReact.setSpawnGameEventOnHit(HitType.COLLECT, GameFlowEvent.EVENT_SHOW_DIALOG_CHARACTER2, 0);
+        
+        SelectDialogComponent dialogSelect = (SelectDialogComponent)allocateComponent(SelectDialogComponent.class);
+        dialogSelect.setHitReact(hitReact);
+     
+        object.add(dialogSelect);
+        object.add(render);
+        object.add(sprite);
+        object.add(dynamicCollision);
+        object.add(hitReact);
+        
+        addStaticData(GameObjectType.HINT_SIGN, object, sprite);
+        sprite.playAnimation(0);
+
+        return object;
+    }
 
     public GameObject spawnObjectTurret(float positionX, float positionY, boolean flipHorizontal) {
         

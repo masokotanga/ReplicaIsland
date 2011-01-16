@@ -21,11 +21,13 @@ package com.replica.replicaisland;
  * an average direction over a short period of time.
  */
 public class InputSystem extends BaseObject {
-	
-	private InputXY mTouchScreen = new InputXY();	// I guess for multitouch this could be an array.
+	private InputTouchScreen mTouchScreen = new InputTouchScreen();
 	private InputXY mOrientationSensor = new InputXY();
 	private InputXY mTrackball = new InputXY();
     private InputKeyboard mKeyboard = new InputKeyboard();
+    private int mScreenRotation = 0;
+    private float mOrientationInput[] = new float[3];
+    private float mOrientationOutput[] = new float[3];
                
     public InputSystem() {
         super();
@@ -45,28 +47,39 @@ public class InputSystem extends BaseObject {
     	mTrackball.press(time.getGameTime(), mTrackball.getX() + x, mTrackball.getY() + y);
     }
     
-    public void touchDown(float x, float y) {
+    public void touchDown(int index, float x, float y) {
 	   ContextParameters params = sSystemRegistry.contextParameters;
 	   TimeSystem time = sSystemRegistry.timeSystem;
 	   // Change the origin of the touch location from the top-left to the bottom-left to match
 	   // OpenGL space.
 	   // TODO: UNIFY THIS SHIT
-	   mTouchScreen.press(time.getGameTime(), x, params.gameHeight - y);   
+	   mTouchScreen.press(index, time.getGameTime(), x, params.gameHeight - y);   
     }
     
-    public void touchUp(float x, float y) {
+    public void touchUp(int index, float x, float y) {
     	// TODO: record up location?
-    	mTouchScreen.release();
+    	mTouchScreen.release(index);
     }
     
-    public void setOrientation(float azimuth, float pitch, float roll) {   
-        //DebugLog.d("Orientation", "Pitch: " + pitch + "  Roll: " + roll);
-        final float correctedPitch = -pitch / 180.0f;
-        final float correctedRoll = -roll / 90.0f;
-        //DebugLog.d("Orientation", "Pitch: " + correctedPitch + "  Roll: " + correctedRoll);
-
+    
+    public void setOrientation(float x, float y, float z) {
+    	// The order of orientation axes changes depending on the rotation of the screen.
+    	// Some devices call landscape "ROTAION_90" (e.g. phones), while others call it
+    	// "ROTATION_0" (e.g. tablets).  So we need to adjust the axes from canonical
+    	// space into screen space depending on the rotation of the screen from
+    	// whatever this device calls "default." 
+    	mOrientationInput[0] = x;
+    	mOrientationInput[1] = y;
+    	mOrientationInput[2] = z;
+    	
+    	canonicalOrientationToScreenOrientation(mScreenRotation, mOrientationInput, mOrientationOutput);
+    	
+    	// Now we have screen space rotations around xyz.
+    	final float horizontalMotion = mOrientationOutput[1] / 90.0f;
+        final float verticalMotion = mOrientationOutput[0] / 90.0f;
+        
         TimeSystem time = sSystemRegistry.timeSystem;
-        mOrientationSensor.press(time.getGameTime(), correctedPitch, correctedRoll);
+        mOrientationSensor.press(time.getGameTime(), horizontalMotion, verticalMotion);
         
     }
     
@@ -83,12 +96,12 @@ public class InputSystem extends BaseObject {
     public void releaseAllKeys() {
     	mTrackball.releaseX();
     	mTrackball.releaseY();
-    	mTouchScreen.release();
+    	mTouchScreen.resetAll();
     	mKeyboard.releaseAll();
     	mOrientationSensor.release();
     }
 
-	public InputXY getTouchScreen() {
+	public InputTouchScreen getTouchScreen() {
 		return mTouchScreen;
 	}
 
@@ -103,7 +116,27 @@ public class InputSystem extends BaseObject {
 	public InputKeyboard getKeyboard() {
 		return mKeyboard;
 	}
+	
+	public void setScreenRotation(int rotation) {
+		mScreenRotation = rotation;
+	}
     
+	// Thanks to NVIDIA for this useful canonical-to-screen orientation function.
+	// More here: http://developer.download.nvidia.com/tegra/docs/tegra_android_accelerometer_v5f.pdf
+	static void canonicalOrientationToScreenOrientation(
+			int displayRotation, float[] canVec, float[] screenVec) { 
+		final int axisSwap[][] = { 
+			{ 1, -1, 0, 1 },   // ROTATION_0 
+			{-1, -1, 1, 0 },   // ROTATION_90 
+			{-1,  1, 0, 1 },   // ROTATION_180 
+			{ 1,  1, 1, 0 } }; // ROTATION_270 
+		
+		final int[] as = axisSwap[displayRotation]; 
+		screenVec[0] = (float)as[0] * canVec[ as[2] ]; 
+		screenVec[1] = (float)as[1] * canVec[ as[3] ]; 
+		screenVec[2] = canVec[2]; 
+	} 
+
     
 
 }

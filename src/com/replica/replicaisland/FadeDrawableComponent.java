@@ -153,4 +153,8 @@ public class FadeDrawableComponent extends GameComponent {
 	 public void setRenderComponent(RenderComponent component) {
 		 mRenderComponent = component;
 	 }
+	 
+	 public void resetPhase() {
+		 mActivateTime = 0.0f;
+	 }
 }

@@ -32,6 +32,13 @@ public class HudSystem extends BaseObject {
     private static final float STOMP_BUTTON_SCALE = 0.65f;
     private static final int COLLECTABLE_EDGE_PADDING = 8;
     private static final int MAX_DIGITS = 4;
+    private static final float MOVEMENT_SLIDER_BASE_X = 20.0f;
+    private static final float MOVEMENT_SLIDER_BASE_Y = 32.0f;
+    private static final float MOVEMENT_SLIDER_BUTTON_X = MOVEMENT_SLIDER_BASE_X + 32.0f;
+    private static final float MOVEMENT_SLIDER_BUTTON_Y =  MOVEMENT_SLIDER_BASE_Y - 16.0f;
+    private static final float FLY_BUTTON_WIDTH = 128;
+    private static final float STOMP_BUTTON_WIDTH = FLY_BUTTON_WIDTH * STOMP_BUTTON_SCALE;
+    private static final float MOVEMENT_SLIDER_WIDTH = 128;
 
     private DrawableBitmap mFuelDrawable;
     private DrawableBitmap mFuelBackgroundDrawable;
@@ -53,12 +60,22 @@ public class HudSystem extends BaseObject {
     private DrawableBitmap mStompButtonEnabledDrawable;
     private DrawableBitmap mStompButtonDepressedDrawable;
     
+    private DrawableBitmap mMovementSliderBaseDrawable;
+    private DrawableBitmap mMovementSliderButtonDrawable;
+    private DrawableBitmap mMovementSliderButtonDepressedDrawable;
+
+    
     private Vector2 mFlyButtonLocation;
     private boolean mFlyButtonActive;
     private boolean mFlyButtonPressed;
     
     private Vector2 mStompButtonLocation;
     private boolean mStompButtonPressed;
+    
+    private Vector2 mMovementSliderBaseLocation;
+    private Vector2 mMovementSliderButtonLocation;
+    private boolean mMovementSliderMode;
+    private boolean mMovementSliderButtonPressed;
     
     private DrawableBitmap mRubyDrawable;
     private DrawableBitmap mCoinDrawable;
@@ -93,6 +110,8 @@ public class HudSystem extends BaseObject {
         mCoinDigits = new int[MAX_DIGITS];
         mRubyDigits = new int[MAX_DIGITS];
         mFPSDigits = new int[MAX_DIGITS];
+        mMovementSliderBaseLocation = new Vector2();
+        mMovementSliderButtonLocation = new Vector2();
         
         reset();
     }
@@ -133,6 +152,14 @@ public class HudSystem extends BaseObject {
         mXDrawable = null;
         mFadePendingEventType = GameFlowEvent.EVENT_INVALID;
         mFadePendingEventIndex = 0;
+        
+        mMovementSliderBaseDrawable = null;
+        mMovementSliderButtonDrawable = null;
+        mMovementSliderButtonDepressedDrawable = null;
+        mMovementSliderBaseLocation.set(MOVEMENT_SLIDER_BASE_X, MOVEMENT_SLIDER_BASE_Y);
+        mMovementSliderButtonLocation.set(MOVEMENT_SLIDER_BUTTON_X, MOVEMENT_SLIDER_BUTTON_Y);
+        mMovementSliderMode = false;
+        mMovementSliderButtonPressed = false;
     }
     
     public void setFuelPercent(float percent) {
@@ -148,13 +175,17 @@ public class HudSystem extends BaseObject {
         mFadeTexture = texture;
     }
     
-    public void setButtonDrawables(DrawableBitmap disabled, DrawableBitmap enabled,
-            DrawableBitmap depressed, DrawableBitmap stompEnabled, DrawableBitmap stompDepressed) {
+    public void setButtonDrawables(DrawableBitmap disabled, DrawableBitmap enabled, DrawableBitmap depressed,
+    		DrawableBitmap stompEnabled, DrawableBitmap stompDepressed,
+    		DrawableBitmap sliderBase, DrawableBitmap sliderButton, DrawableBitmap sliderDepressed) {
         mFlyButtonDisabledDrawable = disabled;
         mFlyButtonEnabledDrawable = enabled;
         mFlyButtonDepressedDrawable = depressed;
         mStompButtonEnabledDrawable = stompEnabled;
         mStompButtonDepressedDrawable = stompDepressed;
+        mMovementSliderBaseDrawable = sliderBase;
+        mMovementSliderButtonDrawable = sliderButton;
+        mMovementSliderButtonDepressedDrawable = sliderDepressed;
     }
     
     public void setDigitDrawables(DrawableBitmap[] digits, DrawableBitmap xMark) {
@@ -169,9 +200,10 @@ public class HudSystem extends BaseObject {
         mRubyDrawable = ruby;
     }
     
-    public void setButtonState(boolean pressed, boolean attackPressed) {
+    public void setButtonState(boolean pressed, boolean attackPressed, boolean sliderPressed) {
         mFlyButtonPressed = pressed;
         mStompButtonPressed = attackPressed;
+        mMovementSliderButtonPressed = sliderPressed;
     }
     
     public void startFade(boolean in, float duration) {
@@ -204,6 +236,21 @@ public class HudSystem extends BaseObject {
     
     public void setShowFPS(boolean show) {
     	mShowFPS = show;
+    }
+    
+    public void setMovementSliderMode(boolean sliderOn) {
+    	mMovementSliderMode = sliderOn;
+    	if (sliderOn) {
+    		ContextParameters params = sSystemRegistry.contextParameters;
+    		mFlyButtonLocation.set(params.gameWidth - FLY_BUTTON_WIDTH - FLY_BUTTON_X, FLY_BUTTON_Y);
+    		mStompButtonLocation.set(params.gameWidth - STOMP_BUTTON_WIDTH - STOMP_BUTTON_X, STOMP_BUTTON_Y);
+    	} else {
+    		mFlyButtonLocation.set(FLY_BUTTON_X, FLY_BUTTON_Y);
+    		mStompButtonLocation.set(STOMP_BUTTON_X, STOMP_BUTTON_Y);
+    	}
+    }
+    public void setMovementSliderOffset(float offset) {
+        mMovementSliderButtonLocation.set(MOVEMENT_SLIDER_BUTTON_X + (offset * (MOVEMENT_SLIDER_WIDTH / 2.0f)), MOVEMENT_SLIDER_BUTTON_Y);
     }
 
     @Override
@@ -280,6 +327,8 @@ public class HudSystem extends BaseObject {
 	            render.scheduleForDraw(bitmap, mFlyButtonLocation, SortConstants.HUD, false);   
 	        }
 	        
+	        
+	        
 	        if (mStompButtonEnabledDrawable != null && mStompButtonDepressedDrawable != null) {
 	            
 	            DrawableBitmap bitmap = mStompButtonEnabledDrawable;
@@ -297,6 +346,39 @@ public class HudSystem extends BaseObject {
 	            
 	            render.scheduleForDraw(bitmap, mStompButtonLocation, SortConstants.HUD, false);   
 	        }
+	        
+	        if (mMovementSliderMode && 
+	        		mMovementSliderBaseDrawable != null && mMovementSliderButtonDrawable != null) {
+	               
+	            if (mMovementSliderBaseDrawable.getWidth() == 0) {
+	                // first time init
+	                Texture tex = mMovementSliderBaseDrawable.getTexture();
+	                mMovementSliderBaseDrawable.resize(tex.width, tex.height);
+	            }
+	            
+	            if (mMovementSliderButtonDrawable.getWidth() == 0) {
+	                // first time init
+	                Texture tex = mMovementSliderButtonDrawable.getTexture();
+	                mMovementSliderButtonDrawable.resize(tex.width, tex.height);
+	            }
+	            
+	            if (mMovementSliderButtonDepressedDrawable.getWidth() == 0) {
+	                // first time init
+	                Texture tex = mMovementSliderButtonDepressedDrawable.getTexture();
+	                mMovementSliderButtonDepressedDrawable.resize(tex.width, tex.height);
+	            }
+	            
+	            DrawableBitmap bitmap = mMovementSliderButtonDrawable;
+
+	            if (mMovementSliderButtonPressed) {
+	            	bitmap = mMovementSliderButtonDepressedDrawable;
+	            }
+	            
+	            render.scheduleForDraw(mMovementSliderBaseDrawable, mMovementSliderBaseLocation, SortConstants.HUD, false);   
+	            render.scheduleForDraw(bitmap, mMovementSliderButtonLocation, SortConstants.HUD + 1, false);   
+
+	        }
+	        
 	        
 	        if (mCoinDrawable != null) {
 	            if (mCoinDrawable.getWidth() == 0) {
@@ -342,7 +424,7 @@ public class HudSystem extends BaseObject {
         	if (mFPSDigitsChanged) {
             	int count = intToDigitArray(mFPS, mFPSDigits);
             	mFPSDigitsChanged = false;
-                mFPSLocation.set(params.gameWidth - ((count + 1) * mDigitDrawables[0].getWidth()), 20.0f);
+                mFPSLocation.set(params.gameWidth - 10.0f - ((count + 1) * (mDigitDrawables[0].getWidth() / 2.0f)), 10.0f);
 
             }
             drawNumber(mFPSLocation, mFPSDigits, false);
@@ -452,8 +534,9 @@ public class HudSystem extends BaseObject {
 	    if (count < digits.length) {
 	    	digits[count] = -1;
 	    }
-	    return count;
+	    return characterCount;
     }
+    
 	public void sendGameEventOnFadeComplete(int eventType, int eventIndex) {
 		mFadePendingEventType = eventType;
 		mFadePendingEventIndex = eventIndex;
