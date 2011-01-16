@@ -312,17 +312,13 @@
 </group>
 
 <!-- 
- <group>
-	<level resource="@raw/performancetest4" title = "@string/level_performance_test2" time = "@string/level_test_time"/>
-</group>
-
-
 <group>
 	<level resource="@raw/puzzles_test" title = "@string/level_puzzle_test" time = "@string/level_test_time"/>
 	<level resource="@raw/objecttestmap" title = "@string/level_object_test" time = "@string/level_test_time"/>
 	<level resource="@raw/performancetest" title = "@string/level_performance_test" time = "@string/level_test_time"/>
 	<level resource="@raw/performancetest2" title = "@string/level_performance_test2" time = "@string/level_test_time"/>
 	<level resource="@raw/performancetest3" title = "@string/level_performance_test3" time = "@string/level_test_time"/>
+	<level resource="@raw/performancetest4" title = "@string/level_performance_test4" time = "@string/level_test_time"/>
 	<level resource="@raw/npc_motion_test" title = "@string/level_npc_motion_test" time = "@string/level_test_time"/>
 </group>
  -->

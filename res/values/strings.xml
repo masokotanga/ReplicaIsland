@@ -32,6 +32,9 @@
 <string name="preference_configure_controls">Configure Controls</string>
 <string name="preference_enable_click_attack">Click Attack</string>
 <string name="preference_enable_click_attack_summary">Use the trackball click or directional pad center button to attack.</string>
+<string name="preference_enable_screen_controls">On-Screen Controls</string>
+<string name="preference_enable_screen_controls_summary">Displays movement pad and buttons on screen.  Suggested for devices without a d-pad or trackball. Requires mulitouch.</string>
+
 <string name="preference_enable_tilt_controls">Tilt Controls</string>
 <string name="preference_enable_tilt_controls_summary">EXPERIMENTAL!  Tilt the phone left and right to drive the Android around.  Good for devices with no trackball or d-pad.</string>
 
@@ -65,13 +68,23 @@
 <string name="preference_about_summary">Replica Island was made by Chris Pruett and Genki Mine, and produced by Tom Moss.</string>
 <string name="preference_visit_site">Go to the Replica Island web site</string>
 <string name="preference_thanks_title">Special Thanks</string>
-<string name="preference_thanks_summary">Special Thanks to Adrian Havill, Casey Richardson, Jason Chen, Tim Mansfield, and the Android Team for their support of this project.</string>
+<string name="preference_thanks_summary">Special Thanks to Eido Inoue, Casey Richardson, Jason Chen, Tim Mansfield, and the Android Team for their support of this project.</string>
 <string name="preference_licence_title">License</string>
 <string name="preference_licence_summary">Portions of this game are modifications based on work created and shared by Google and used according to terms described in the Creative Commons 3.0 Attribution License.</string>
 <string name="preference_misc">More Information</string>
 <string name="preference_enable_debug">Debug Log</string>
 <string name="preference_enable_debug_summary">Output various logs to logcat.  This option will slow the game down.</string>
 
+<string name="game_results_title">GAME RESULTS</string>
+<string name="game_results_pearls_collected">PEARLS COLLECTED:</string>
+<string name="game_results_robots_destroyed">ROBOTS DESTROYED:</string>
+<string name="game_results_total_play_time">TOTAL PLAY TIME:</string>
+<string name="game_results_ending">ENDING ACHIEVED:</string>
+<string name="game_results_unlocks_message">You can now access Linear Mode and the Level Select from the Extras menu!</string>
+<string name="game_results_kabocha_ending">BAD ENDING #1 - Kabocha Wins</string>
+<string name="game_results_rokudou_ending">BAD ENDING #2 - Rokudou Wins</string>
+<string name="game_results_wanda_ending">GOOD ENDING - World Saved!</string>
+<string name="game_results_ok_button">Game Over!</string>
 
 <string name="saved_game_erased_notification">Saved Game Erased</string>
 
@@ -80,29 +93,27 @@
 <string name="quit_game_dialog_cancel">Cancel</string>
 <string name="quit_game_dialog_message">Return to main menu?</string>
 
+<string name="new_game_dialog_title">Start New Game?</string>
+<string name="new_game_dialog_ok">Start New Game</string>
+<string name="new_game_dialog_cancel">Cancel</string>
+<string name="new_game_dialog_message">Starting a new game in this mode will erase your current game in progress.  Are you sure you want to start a new game?</string>
+
+<string name="extras_locked_dialog_title">Extra Locked!</string>
+<string name="extras_locked_dialog_ok">Get to it!</string>
+<string name="extras_locked_dialog_message">This extra feature is still locked.  Beat the game one time to unlock it!</string>
+
+
 <string name="nav_type">Trackball</string>
 
 <string name="whats_new_dialog_title">Replica Island</string>
 <string name="whats_new_dialog_ok">Rock on!</string>
-<string name="whats_new_dialog_message">Thanks for downloading Replica Island.\n\n
+<string name="whats_new_dialog_message">Thanks for downloading Replica Island.  Over 1.5 million people have played Replica Island!\n\n
 <b>New in this version:</b>\n
-\t• Fixed blackouts and crashes on Cliq, Backflip, etc.  If you have problems try <b>Safe Mode</b> in the options screen.\n
-\t• Improved controls, especially for Droid and other d-pad devices.\n
-\t• Added <b>Motion Sensitivity</b> option to control options.  Optical pad users (HTC Desire, Samsung Moment, etc) may want to turn sensitivity down a bit.\n
-\t• Various performance and stability improvements.\n
-\n
-As of version 1.3, more than 500,000 users have downloaded Replica Island.  Thank you for your support!
-\n
-\n
-<b>New in version 1.21:</b>\n
-\t• Fixed crash when adjusting tilt sensitivity on Samsung Moment.\n
-\t• Added debug log option. \n
-\n
-<b>New in version 1.2:</b>\n
-\t• Crash fixes and general stability improvements. \n
-\t• Keyboard configuration for devices with hard keyboards. \n
-\t• Tilt control sensitivity controls. \n
-\t• Fixed missing graphics on confusing Memory #034 puzzle. \n
+- Unlockable extra modes: Linear Story Mode and Level Select.\n
+- On-screen controls for devices with no buttons.\n
+- Difficulty settings for new games. \n
+- Play statistics shown when you finish the game.\n
+- Lots of bugs fixed!\n
 \n
 \n
 This is an open source project.  If you are interested in how it works, or would like to use it to make your
@@ -112,7 +123,42 @@ own games, check out the source at our web site, replicaisland.net.
 Also note that this game sends anonymous play statistics back to a server.  If you’d rather not
 allow that, you can turn it off in the options screen.</string>
 
-<string name="whats_new_ticker">New in this version: Fix blackouts on broken phones (Cliq, Backflip, etc), improved controls, adjustable control sensitivity, various performance and stability improvements.</string>
+<string name="control_setup_dialog_title">Control Setup</string>
+<string name="control_setup_dialog_ok">Leave it this way</string>
+<string name="control_setup_dialog_change">Change control settings</string>
+<string name="control_setup_dialog_message">
+Based on your device hardware, the following control scheme has been automatically selected:
+&lt;br>
+&lt;br>
+&lt;small>%1s&lt;/small>
+&lt;br>
+&lt;br>Replica Island supports many different control configurations.  Control options can be changed at 
+any time using the Configure Controls button in Options.
+&lt;br>
+&lt;br>
+Are you ok with the control system selected above, or would you like to set up your control 
+settings manually now?</string>
+<string name="control_setup_dialog_trackball">&lt;b>Trackball / Trackpad&lt;/b> - Sensitivity can be adjusted in Options.</string>
+<string name="control_setup_dialog_dpad">&lt;b>Keyboard / Pad&lt;/b> - Key mappings can be changed in Options.</string>
+<string name="control_setup_dialog_screen">&lt;b>On-Screen Pad&lt;/b></string>
+<string name="control_setup_dialog_tilt">&lt;b>Tilt&lt;/b> - Sensitivity can be adjusted in Options.</string> 
+
+<string name="onscreen_tilt_dialog_title">New Control Scheme!</string>
+<string name="onscreen_tilt_dialog_ok">On-Screen Pad</string>
+<string name="onscreen_tilt_dialog_cancel">Stick with Tilt</string>
+<string name="onscreen_tilt_dialog_message">This version of Replica Island adds an option for 
+<b>On-Screen Controls</b> for multi-touch devices.  Your device supports this new 
+mode, but your options are currently set to <b>Tilt</b> controls.  Would you like to try the 
+new On-Screen Controls instead, or stick with Tilt? 
+\n<small>You can change this setting at any time by choosing Configure Controls under Options.</small>
+</string>
+
+<string name="whats_new_ticker">New in this version: On-screen controls, app-to-sd card support, unlockable extra modes, game statistics after winning, lots of minor (and not so minor) bugs fixed.</string>
+
+<string name="baby_description">No challenge at all.</string>
+<string name="kids_description">A comfortable ride to the end.</string>
+<string name="adults_description">True accomplishment requires hardship.</string>
+
 
 <!-- Toast Messages -->
 <string name="memory_playback_start">MEMORY PLAYBACK START</string>
@@ -183,6 +229,7 @@ allow that, you can turn it off in the options screen.</string>
 <string name = "level_performance_test">Performance Test</string>
 <string name = "level_performance_test2">Performance Test 2</string>
 <string name = "level_performance_test3">Performance Test 3</string>
+<string name = "level_performance_test4">Google IO Performance Test</string>
 <string name = "level_npc_motion_test">NPC Motion Test</string>
 
 <!-- Level time codes -->
@@ -338,7 +385,7 @@ When I find The Source, I am going to use it to cure myself of whatever it is th
 <string name="Diary13">
 He lied he lied he lied he lied.  Rokudou is a liar.  He seeks only to control.  He says he wants The Source to save the world, to rid it of the fat cats who play the planet like a marionette.  He he he HE is the fat cat, the puppeteer.  He shall not have The Source.  It shall be mine.  Mine mine mine mine mine. 73, 79, 83, 89, 97, 101, 103, 107, 109, 113.\n
 \n
-The Source is here.  It is down here, in the dark.  I can feel its heat, a warmth like the sun against my cheek.  But no, I mustn't go to it, not not not not yet.  If I find it, Rokudou will take it from me and it will be check check check check mate.  No, Kabochanomizu is cautious.  Kabochanomizu is careful.  I shall retreat to the surface.  I know enough now to build things.  I will return only when I can guarantee my success.  Rokudou will grovel before me and the world will know Kabochanomizu as its savior.\n
+The Source is here.  It is down here, in the dark.  I can feel its heat, a warmth like the sun against my cheek.  But no, I mustn’t go to it, not not not not yet.  If I find it, Rokudou will take it from me and it will be check check check check mate.  No, Kabochanomizu is cautious.  Kabochanomizu is careful.  I shall retreat to the surface.  I know enough now to build things.  I will return only when I can guarantee my success.  Rokudou will grovel before me and the world will know Kabochanomizu as its savior.\n
 </string>
 
 <string name="Diary14">

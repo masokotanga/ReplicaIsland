@@ -1283,7 +1283,9 @@ public class GLSurfaceView extends SurfaceView implements SurfaceHolder.Callback
 	                    // to figure this out.
 	                    if (framesSinceResetHack > 1 || !mSafeMode) {
 	                    	mRenderer.onDrawFrame(gl);
-	                    } 
+	                    } else {
+	                    	DebugLog.w("GLThread", "Safe Mode Wait...");
+	                    }
 	                    
 	                    framesSinceResetHack++;
 

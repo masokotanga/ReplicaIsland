@@ -16,6 +16,8 @@
  
  package com.replica.replicaisland;
 
+import java.lang.reflect.InvocationTargetException;
+
 import android.app.Activity;
 import android.content.Intent;
 import android.graphics.drawable.AnimationDrawable;
@@ -31,7 +33,16 @@ public class DiaryActivity extends Activity {
 
 	private OnClickListener mKillDiaryListener = new OnClickListener() {
 		public void onClick(View arg0) {
-			finish();			
+			finish();		
+			if (UIConstants.mOverridePendingTransition != null) {
+ 		       try {
+ 		    	  UIConstants.mOverridePendingTransition.invoke(DiaryActivity.this, R.anim.activity_fade_in, R.anim.activity_fade_out);
+ 		       } catch (InvocationTargetException ite) {
+ 		           DebugLog.d("Activity Transition", "Invocation Target Exception");
+ 		       } catch (IllegalAccessException ie) {
+ 		    	   DebugLog.d("Activity Transition", "Illegal Access Exception");
+ 		       }
+			}
 		}
     };
     	

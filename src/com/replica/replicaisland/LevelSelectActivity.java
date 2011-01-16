@@ -33,6 +33,7 @@ import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -170,7 +171,15 @@ public class LevelSelectActivity extends ListActivity {
         setContentView(R.layout.level_select);
         mLevelData = new ArrayList<LevelMetaData>();
 
-        generateLevelList(true);
+        if (getIntent().getBooleanExtra("unlockAll", false)) {
+        	generateLevelList(false);
+        	for (LevelMetaData level : mLevelData) {
+                level.enabled = true;
+            }
+        } else {
+        	generateLevelList(true);
+        }
+        
         
         DisableItemArrayAdapter<LevelMetaData> adapter = new DisableItemArrayAdapter<LevelMetaData>(
                 this, R.layout.level_select_row, R.layout.level_select_disabled_row, R.layout.level_select_completed_row,
@@ -246,6 +255,15 @@ public class LevelSelectActivity extends ListActivity {
 	            } else {
 	                setResult(RESULT_OK, intent);
 	            	finish();
+	            	if (UIConstants.mOverridePendingTransition != null) {
+		 		       try {
+		 		    	  UIConstants.mOverridePendingTransition.invoke(LevelSelectActivity.this, R.anim.activity_fade_in, R.anim.activity_fade_out);
+		 		       } catch (InvocationTargetException ite) {
+		 		           DebugLog.d("Activity Transition", "Invocation Target Exception");
+		 		       } catch (IllegalAccessException ie) {
+		 		    	   DebugLog.d("Activity Transition", "Illegal Access Exception");
+		 		       }
+		            }
 	            }
 	        }
         }

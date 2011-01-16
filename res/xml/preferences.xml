@@ -30,6 +30,7 @@
                 />
                 
 		<PreferenceScreen
+				android:key="controlConfigScreen"
                 android:title="@string/preference_configure_controls"
                 xmlns:replica="http://schemas.android.com/apk/res/com.replica.replicaisland">
 			<CheckBoxPreference
@@ -64,7 +65,16 @@
                 replica:minText="@string/preference_movement_min" 
                 android:persistent="true"/>     
                 
-               
+            <CheckBoxPreference
+       			android:key="enableScreenControls"
+                android:title="@string/preference_enable_screen_controls"
+                android:summaryOn="@string/preference_enable_screen_controls_summary"
+                android:summaryOff="@string/preference_enable_screen_controls_summary"
+                android:defaultValue="false"
+                android:persistent="true"
+                android:disableDependentsState="true"
+                />
+                  
             <CheckBoxPreference
        			android:key="enableTiltControls"
                 android:title="@string/preference_enable_tilt_controls"
@@ -72,6 +82,7 @@
                 android:summaryOff="@string/preference_enable_tilt_controls_summary"
                 android:defaultValue="false"
                 android:persistent="true"
+                android:dependency="enableScreenControls"
                 />
                 
              <com.replica.replicaisland.SliderPreference

@@ -17,8 +17,10 @@
 package com.replica.replicaisland;
 
 import android.content.Context;
+import android.os.Build;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
+import android.view.WindowManager;
 import android.widget.Toast;
 
 /**
@@ -40,6 +42,7 @@ public class Game extends AllocationGuard {
     private LevelTree.Level mLastLevel;
     private boolean mGLDataLoaded;
     private ContextParameters mContextParameters;
+    private TouchFilter mTouchFilter;
     
     public Game() {
         super();
@@ -56,7 +59,7 @@ public class Game extends AllocationGuard {
      * isn't yet available.
      * @param context
      */
-    public void bootstrap(Context context, int viewWidth, int viewHeight, int gameWidth, int gameHeight) {
+    public void bootstrap(Context context, int viewWidth, int viewHeight, int gameWidth, int gameHeight, int difficulty) {
         if (!mBootstrapComplete) {
             mRenderer = new GameRenderer(context, this, gameWidth, gameHeight);
     
@@ -73,7 +76,15 @@ public class Game extends AllocationGuard {
             params.viewScaleX = (float)viewWidth / gameWidth;
             params.viewScaleY = (float)viewHeight / gameHeight;
             params.context = context;
+            params.difficulty = difficulty;
             BaseObject.sSystemRegistry.contextParameters = params;
+            
+            final int sdkVersion = Integer.parseInt(Build.VERSION.SDK);
+            if (sdkVersion < Build.VERSION_CODES.ECLAIR) {
+            	mTouchFilter = new SingleTouchFilter();
+            } else {
+            	mTouchFilter = new MultiTouchFilter();
+            }
     
             // Short-term textures are cleared between levels.
             TextureLibrary shortTermTextureLibrary = new TextureLibrary();
@@ -96,6 +107,10 @@ public class Game extends AllocationGuard {
             InputSystem input = new InputSystem();
             BaseObject.sSystemRegistry.inputSystem = input;
             BaseObject.sSystemRegistry.registerForReset(input);
+            
+            WindowManager windowMgr = (WindowManager)context.getSystemService(Context.WINDOW_SERVICE); 
+            int rotationIndex = windowMgr.getDefaultDisplay().getOrientation(); 
+            input.setScreenRotation(rotationIndex);
 
             InputGameInterface inputInterface = new InputGameInterface();
             gameRoot.add(inputInterface);
@@ -166,7 +181,13 @@ public class Game extends AllocationGuard {
                     new DrawableBitmap(longTermTextureLibrary.allocateTexture(
                             R.drawable.ui_button_stomp_off), 0, 0),
                     new DrawableBitmap(longTermTextureLibrary.allocateTexture(
-                            R.drawable.ui_button_stomp_on), 0, 0));
+                            R.drawable.ui_button_stomp_on), 0, 0),
+                    new DrawableBitmap(longTermTextureLibrary.allocateTexture(
+                            R.drawable.ui_movement_slider_base), 0, 0),
+                    new DrawableBitmap(longTermTextureLibrary.allocateTexture(
+                            R.drawable.ui_movement_slider_button_off), 0, 0),
+                    new DrawableBitmap(longTermTextureLibrary.allocateTexture(
+                            R.drawable.ui_movement_slider_button_on), 0, 0));
             Texture[] digitTextures = {
                     longTermTextureLibrary.allocateTexture(R.drawable.ui_0),
                     longTermTextureLibrary.allocateTexture(R.drawable.ui_1),
@@ -209,7 +230,9 @@ public class Game extends AllocationGuard {
     
             BaseObject.sSystemRegistry.vibrationSystem = new VibrationSystem();
             
-            BaseObject.sSystemRegistry.eventRecorder = new EventRecorder();
+            EventRecorder eventRecorder = new EventRecorder();
+            BaseObject.sSystemRegistry.eventRecorder = eventRecorder;
+            BaseObject.sSystemRegistry.registerForReset(eventRecorder);
             
             gameRoot.add(collision);
             
@@ -252,6 +275,9 @@ public class Game extends AllocationGuard {
         // Reset the level
         BaseObject.sSystemRegistry.levelSystem.reset();
         
+        // Ensure sounds have stopped.
+        BaseObject.sSystemRegistry.soundSystem.stopAll();
+        
         // Reset systems that need it.
         BaseObject.sSystemRegistry.reset();
         
@@ -277,6 +303,9 @@ public class Game extends AllocationGuard {
         GameObjectManager manager = BaseObject.sSystemRegistry.gameObjectManager;
         manager.destroyAll();
         manager.commitUpdates();
+        
+        // Ensure sounds have stopped.
+        BaseObject.sSystemRegistry.soundSystem.stopAll();
         
         // Reset systems that need it.
         BaseObject.sSystemRegistry.reset();
@@ -306,7 +335,6 @@ public class Game extends AllocationGuard {
         
         mGLDataLoaded = true;
         
-        
         mCurrentLevel = level;
         mPendingLevel = null;
         
@@ -317,6 +345,7 @@ public class Game extends AllocationGuard {
         if (hud != null) {
             hud.startFade(true, 1.0f);
         }
+        
         
         CustomToastSystem toast = BaseObject.sSystemRegistry.customToastSystem;
         if (toast != null) {
@@ -393,17 +422,12 @@ public class Game extends AllocationGuard {
     
     public boolean onTouchEvent(MotionEvent event) {
         if (mRunning) {
-        	if (event.getAction() == MotionEvent.ACTION_UP) {
-        		BaseObject.sSystemRegistry.inputSystem.touchUp(event.getRawX() * (1.0f / mContextParameters.viewScaleX), 
-        				event.getRawY() * (1.0f / mContextParameters.viewScaleY));
-        	} else {
-        		BaseObject.sSystemRegistry.inputSystem.touchDown(event.getRawX() * (1.0f / mContextParameters.viewScaleX),
-        				event.getRawY() * (1.0f / mContextParameters.viewScaleY));
-        	}
-            
+        	mTouchFilter.updateTouch(event);
         }
         return true;
     }
+    
+    
     
     public boolean onKeyDownEvent(int keyCode) {
         boolean result = false;
@@ -493,11 +517,14 @@ public class Game extends AllocationGuard {
 		BaseObject.sSystemRegistry.soundSystem.setSoundEnabled(soundEnabled);
 	}
 	
-	public void setControlOptions(boolean clickAttack, boolean tiltControls, int tiltSensitivity, int movementSensitivity) {
+	public void setControlOptions(boolean clickAttack, 
+			boolean tiltControls, int tiltSensitivity, int movementSensitivity, boolean onScreenControls) {
 		BaseObject.sSystemRegistry.inputGameInterface.setUseClickForAttack(clickAttack);
 		BaseObject.sSystemRegistry.inputGameInterface.setUseOrientationForMovement(tiltControls);
 		BaseObject.sSystemRegistry.inputGameInterface.setOrientationMovementSensitivity((tiltSensitivity / 100.0f));
 		BaseObject.sSystemRegistry.inputGameInterface.setMovementSensitivity((movementSensitivity / 100.0f));
+		BaseObject.sSystemRegistry.inputGameInterface.setUseOnScreenControls(onScreenControls);
+		BaseObject.sSystemRegistry.hudSystem.setMovementSliderMode(onScreenControls);
 	}
 	
 	public void setSafeMode(boolean safe) {
@@ -511,6 +538,14 @@ public class Game extends AllocationGuard {
 	public Vector2 getLastDeathPosition() {
 		return BaseObject.sSystemRegistry.eventRecorder.getLastDeathPosition();
 	}
+	
+	public void setLastEnding(int ending) {
+		BaseObject.sSystemRegistry.eventRecorder.setLastEnding(ending);
+	}
+	
+	public int getLastEnding() {
+		return BaseObject.sSystemRegistry.eventRecorder.getLastEnding();
+	}
 
 	public boolean isPaused() {
 		return (mRunning && mGameThread != null && mGameThread.getPaused());
@@ -521,4 +556,15 @@ public class Game extends AllocationGuard {
 		BaseObject.sSystemRegistry.inputGameInterface.setKeys(leftKey, rightKey, jumpKey, attackKey);
 	}
 
+	public int getRobotsDestroyed() {
+		return BaseObject.sSystemRegistry.eventRecorder.getRobotsDestroyed();
+	}
+	
+	public int getPearlsCollected() {
+		return BaseObject.sSystemRegistry.eventRecorder.getPearlsCollected();
+	}
+
+	public int getPearlsTotal() {
+		return BaseObject.sSystemRegistry.eventRecorder.getPearlsTotal();
+	}
 }

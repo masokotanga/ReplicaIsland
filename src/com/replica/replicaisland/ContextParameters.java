@@ -29,6 +29,7 @@ public class ContextParameters extends BaseObject {
 	public float viewScaleY;
 	public boolean supportsDrawTexture;
 	public boolean supportsVBOs;
+	public int difficulty;
     
     public ContextParameters() {
         super();

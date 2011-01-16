@@ -31,8 +31,7 @@ public class PlayerComponent extends GameComponent {
     private static final float MAX_UPWARD_SPEED = 250.0f;
     private static final float VERTICAL_IMPULSE_TOLERANCE = 50.0f;
     private static final float FUEL_AMOUNT = 1.0f;
-    private static final float FUEL_AIR_REFILL_SPEED = 0.15f;
-    private static final float FUEL_GROUND_REFILL_SPEED = 2.0f;
+    
     private static final float JUMP_TO_JETS_DELAY = 0.5f;
     
     private static final float STOMP_VELOCITY = -1000.0f;
@@ -45,23 +44,12 @@ public class PlayerComponent extends GameComponent {
     private static final float GHOST_REACTIVATION_DELAY = 0.3f;
     private static final float GHOST_CHARGE_TIME = 0.75f;
     
-    public static final int MAX_PLAYER_LIFE = 3;
     private static final int MAX_GEMS_PER_LEVEL = 3;
-    private static final int COINS_PER_POWERUP = 20;
     
     private static final float NO_GEMS_GHOST_TIME = 3.0f;
     private static final float ONE_GEM_GHOST_TIME = 8.0f;
     private static final float TWO_GEMS_GHOST_TIME = 0.0f; // no limit.
     
-    public static final float GLOW_DURATION = 15.0f;
-    
-    // DDA boosts
-    private static final int DDA_STAGE_1_ATTEMPTS = 3;
-    private static final int DDA_STAGE_2_ATTEMPTS = 8;
-    private static final int DDA_STAGE_1_LIFE_BOOST = 1;
-    private static final int DDA_STAGE_2_LIFE_BOOST = 2;
-    private static final float FUEL_AIR_REFILL_SPEED_DDA1 = 0.22f;
-    private static final float FUEL_AIR_REFILL_SPEED_DDA2 = 0.30f;
     
     public enum State {
         MOVE,
@@ -88,6 +76,13 @@ public class PlayerComponent extends GameComponent {
     private float mInvincibleEndTime;
     private HitReactionComponent mHitReaction;
     private float mFuelAirRefillSpeed;
+    private DifficultyConstants mDifficultyConstants;
+    private final static DifficultyConstants sDifficultyArray[] = { 
+    	new BabyDifficultyConstants(), 
+    	new KidsDifficultyConstants(),
+    	new AdultsDifficultyConstants()
+    };
+    private FadeDrawableComponent mInvincibleFader;	// HACK!
     
     // Variables recorded for animation decisions.
     private boolean mRocketsOn;
@@ -115,7 +110,9 @@ public class PlayerComponent extends GameComponent {
         mInvincibleSwap = null;
         mInvincibleEndTime = 0.0f;
         mHitReaction = null;
-        mFuelAirRefillSpeed = FUEL_AIR_REFILL_SPEED;
+        mDifficultyConstants = getDifficultyConstants();
+        mFuelAirRefillSpeed = mDifficultyConstants.getFuelAirRefillSpeed();
+        mInvincibleFader = null;
     }
 
     protected void move(float time, float timeDelta, GameObject parentObject) {
@@ -126,7 +123,7 @@ public class PlayerComponent extends GameComponent {
 
             if (mFuel < FUEL_AMOUNT) {
                 if (mTouchingGround) {
-                    mFuel += FUEL_GROUND_REFILL_SPEED * timeDelta;
+                    mFuel += mDifficultyConstants.getFuelGroundRefillSpeed() * timeDelta;
                 } else {
                     mFuel += mFuelAirRefillSpeed * timeDelta;
                 }
@@ -230,16 +227,27 @@ public class PlayerComponent extends GameComponent {
         
         if (mInventory != null && mState != State.WIN) {
             InventoryComponent.UpdateRecord inventory = mInventory.getRecord();
-            if (inventory.coinCount >= COINS_PER_POWERUP) {
+            if (inventory.coinCount >= mDifficultyConstants.getCoinsPerPowerup()) {
                 inventory.coinCount = 0;
                 mInventory.setChanged();
-                parentObject.life = MAX_PLAYER_LIFE;
+                parentObject.life = mDifficultyConstants.getMaxPlayerLife();
                 if (mInvincibleEndTime < gameTime) {
 	                mInvincibleSwap.activate(parentObject);
-	                mInvincibleEndTime = gameTime + GLOW_DURATION;
+	                mInvincibleEndTime = gameTime + mDifficultyConstants.getGlowDuration();
 	                if (mHitReaction != null) {
 	                    mHitReaction.setForceInvincible(true);
 	                }
+                } else {
+                	// invincibility is already active, extend it.
+                	mInvincibleEndTime = gameTime + mDifficultyConstants.getGlowDuration();
+                	// HACK HACK HACK.  This really doesn't go here.
+                	// To extend the invincible time we need to increment the value above (easy)
+                	// and also tell the component managing the glow sprite to reset its
+                	// timer (not easy).  Next time, make a shared value system for this
+                	// kind of case!!
+                	if (mInvincibleFader != null) {
+                		mInvincibleFader.resetPhase();
+                	}
                 }
             }
             if (inventory.rubyCount >= MAX_GEMS_PER_LEVEL) {
@@ -247,7 +255,7 @@ public class PlayerComponent extends GameComponent {
             }
         }
         
-        if (mInvincibleEndTime > 0.0f && mInvincibleEndTime < gameTime) {
+        if (mInvincibleEndTime > 0.0f && (mInvincibleEndTime < gameTime || mState == State.DEAD)) {
             mInvincibleSwap.activate(parentObject);
             mInvincibleEndTime = 0.0f;
             if (mHitReaction != null) {
@@ -311,7 +319,6 @@ public class PlayerComponent extends GameComponent {
         final InputGameInterface input = sSystemRegistry.inputGameInterface;
         if (hud != null) {
             hud.setFuelPercent(mFuel / FUEL_AMOUNT);
-            hud.setButtonState(input.getJumpButton().getPressed(), input.getAttackButton().getPressed());
         }
     
     }
@@ -546,22 +553,31 @@ public class PlayerComponent extends GameComponent {
         mHitReaction = hitReact;
     }
     
+    public final void setInvincibleFader(FadeDrawableComponent fader) {
+    	mInvincibleFader = fader;
+    }
+    
     public final void adjustDifficulty(GameObject parent, int levelAttemps ) {
     	// Super basic DDA.
     	// If we've tried this levels several times secretly increase our
         // hit points so the level gets easier.
     	// Also make fuel refill faster in the air after we've died too many times.
-    	if (levelAttemps >= DDA_STAGE_1_ATTEMPTS) {
-            if (levelAttemps >= DDA_STAGE_2_ATTEMPTS) {
-            	parent.life += DDA_STAGE_2_LIFE_BOOST;
-            	mFuelAirRefillSpeed = FUEL_AIR_REFILL_SPEED_DDA2;
+    	
+    	if (levelAttemps >= mDifficultyConstants.getDDAStage1Attempts()) {
+            if (levelAttemps >= mDifficultyConstants.getDDAStage2Attempts()) {
+            	parent.life += mDifficultyConstants.getDDAStage2LifeBoost();
+            	mFuelAirRefillSpeed = mDifficultyConstants.getDDAStage2FuelAirRefillSpeed();
             } else {
-            	parent.life += DDA_STAGE_1_LIFE_BOOST;
-            	mFuelAirRefillSpeed = FUEL_AIR_REFILL_SPEED_DDA1;
+            	parent.life += mDifficultyConstants.getDDAStage1LifeBoost();
+            	mFuelAirRefillSpeed = mDifficultyConstants.getDDAStage1FuelAirRefillSpeed();
             }
         }
     	
     	
+    }
+    
+    public static DifficultyConstants getDifficultyConstants() {
+    	return sDifficultyArray[sSystemRegistry.contextParameters.difficulty];
     }
 
 }
